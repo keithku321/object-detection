@@ -21,13 +21,97 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="webcam.py" />
+    <Compile Include="demo\webcam.py" />
     <Compile Include="Object_Detection.py" />
+    <Compile Include="common\__init__.py" />
+    <Compile Include="common\benchmark.py" />
+    <Compile Include="common\datasets.py" />
+    <Compile Include="common\demoSupport.py" />
+    <Compile Include="common\environment.py" />
+    <Compile Include="common\modules.py" />
+    <Compile Include="common\registerModules.py" />
+    <Compile Include="common\results.py" />
+    <Compile Include="common\summariseResults.py" />
+    <Compile Include="common\training.py" />
+    <Compile Include="underwater\__init__.py" />
+    <Compile Include="underwater\degrade.py" />
+    <Compile Include="underwater\demoTab.py" />
+    <Compile Include="underwater\enhance.py" />
+    <Compile Include="underwater\train.py" />
+    <Compile Include="weather\__init__.py" />
+    <Compile Include="weather\demoTab.py" />
+    <Compile Include="weather\distillTrainer.py" />
+    <Compile Include="weather\evalByWeather.py" />
+    <Compile Include="weather\prepareDawn.py" />
+    <Compile Include="weather\prune.py" />
+    <Compile Include="weather\quantise.py" />
+    <Compile Include="weather\train.py" />
+    <Compile Include="smallobject\__init__.py" />
+    <Compile Include="smallobject\demoTab.py" />
+    <Compile Include="smallobject\evalCoco.py" />
+    <Compile Include="smallobject\nwdLoss.py" />
+    <Compile Include="smallobject\train.py" />
+    <Compile Include="camoedge\__init__.py" />
+    <Compile Include="camoedge\dataset.py" />
+    <Compile Include="camoedge\demoTab.py" />
+    <Compile Include="camoedge\evaluate.py" />
+    <Compile Include="camoedge\losses.py" />
+    <Compile Include="camoedge\metrics.py" />
+    <Compile Include="camoedge\model.py" />
+    <Compile Include="camoedge\train.py" />
+    <Compile Include="demo\__init__.py" />
+    <Compile Include="demo\app.py" />
+    <Compile Include="tests\test_camoedge_metrics.py" />
+    <Compile Include="tests\test_datasets.py" />
+    <Compile Include="tests\test_distill.py" />
+    <Compile Include="tests\test_modules.py" />
+    <Compile Include="tests\test_results.py" />
+    <Compile Include="tests\test_smallobject.py" />
+    <Compile Include="tests\test_ultralytics_integration.py" />
+    <Compile Include="tests\test_underwater.py" />
+    <Compile Include="tests\test_weather_data.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="camoedge\" />
+    <Folder Include="common\" />
+    <Folder Include="datasets\" />
+    <Folder Include="demo\" />
+    <Folder Include="smallobject\" />
+    <Folder Include="smallobject\configs\" />
+    <Folder Include="tests\" />
+    <Folder Include="underwater\" />
+    <Folder Include="underwater\configs\" />
+    <Folder Include="weather\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="LICENSE.txt" />
     <Content Include="YOLO26 Occlusion.ipynb" />
+    <Content Include="requirements.txt" />
+    <Content Include="requirements-local.txt" />
+    <Content Include="pytest.ini" />
+    <Content Include="datasets\manifest.json" />
+    <Content Include="underwater\underwater_colab.ipynb" />
+    <Content Include="weather\weather_colab.ipynb" />
+    <Content Include="smallobject\smallobject_colab.ipynb" />
+    <Content Include="camoedge\camoedge_colab.ipynb" />
+    <Content Include="underwater\configs\yolo26n-cbam-a.yaml" />
+    <Content Include="underwater\configs\yolo26n-cbam-b.yaml" />
+    <Content Include="underwater\configs\yolo26n-cbam-c.yaml" />
+    <Content Include="underwater\configs\yolo26n-eca-a.yaml" />
+    <Content Include="underwater\configs\yolo26n-eca-b.yaml" />
+    <Content Include="underwater\configs\yolo26n-eca-c.yaml" />
+    <Content Include="underwater\configs\yolo26n-simam-a.yaml" />
+    <Content Include="underwater\configs\yolo26n-simam-b.yaml" />
+    <Content Include="underwater\configs\yolo26n-simam-c.yaml" />
+    <Content Include="underwater\configs\yolo26n-ca-a.yaml" />
+    <Content Include="underwater\configs\yolo26n-ca-b.yaml" />
+    <Content Include="underwater\configs\yolo26n-ca-c.yaml" />
+    <Content Include="smallobject\configs\yolo26n-p2-plain.yaml" />
+    <Content Include="smallobject\configs\yolo26n-eca.yaml" />
+    <Content Include="smallobject\configs\yolo26n-dysample.yaml" />
+    <Content Include="smallobject\configs\yolo26n-wfusion.yaml" />
+    <Content Include="smallobject\configs\yolo26n-p2-dysample-eca-wfusion.yaml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -1,0 +1,39 @@
+# Local NVIDIA PC (Windows or Linux). Colab does NOT need this file; use requirements.txt there.
+#
+#   python -m venv .venv
+#   .venv\Scripts\activate                     (Linux/macOS: source .venv/bin/activate)
+#   pip install -r requirements-local.txt
+#
+# What differs from requirements.txt:
+#
+# 1. PyTorch comes from the CUDA wheel index. On Windows a plain "pip install torch" installs a CPU-only build
+#    (torch.cuda.is_available() is False), which is the usual reason a GPU PC trains slowly.
+#    torch 2.11.0 matches Colab runtime 2026.07, so code behaves the same locally and on Colab. The wheel is about
+#    2.7 GB; expect a long first download. Pick the CUDA tag your driver supports (nvidia-smi shows "CUDA Version",
+#    which must be at least the tag):
+#        cu128  torch 2.9.0 to 2.11.0   (used below; drivers 570 or newer)
+#        cu126  torch up to 2.14.1      (older drivers)
+#        cu130  torch up to 2.14.1      (newest drivers)
+#    No nightly build is needed: stable wheels exist for Python 3.12 and 3.14 and they support RTX 20, 30 and 40-series
+#    cards. Nightly is only for a GPU generation or Python version newer than the stable wheels support.
+#    To switch an existing environment from the CPU build to the CUDA build:
+#        pip install torch==2.11.0+cu128 torchvision==0.26.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+#
+# 2. Python 3.14 only: pysodmetrics (Plan D) is skipped by requirements.txt because its dependencies have no
+#    Python 3.14 wheels. After this install finishes, run these two commands to get it anyway:
+#        pip install scikit-image scikit-learn scipy
+#        pip install pysodmetrics==1.6.2 --no-deps
+#    "pip check" then complains about the versions pysodmetrics asks for; that is expected. With this setup the metric
+#    tests in tests/test_camoedge_metrics.py pass, but it runs outside the versions its author tested, so produce the
+#    numbers for the report on Python 3.12 or Colab. Python 3.12 does not need this step.
+#
+# 3. Windows notes: the train scripts use 2 dataloader workers on Windows (common/environment.py); pass workers=0 if
+#    the dataloader hangs. Keep your own scripts under an "if __name__ == '__main__':" guard: without it every
+#    dataloader worker runs the whole script again. Prefer a venv path without spaces if a tool complains about the
+#    project folder name.
+
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+
+-r requirements.txt

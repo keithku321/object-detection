@@ -1,9 +1,14 @@
-# Datasets and training outputs (kept on Drive)
-datasets/
+# Datasets and training outputs (kept on Drive); only the dataset manifest is tracked
+datasets/*
+!datasets/manifest.json
 runs/
 *.pt
 *.onnx
 *.zip
+
+# Ultralytics settings file; it is written into the working folder when the user settings folder is not writable,
+# and it holds paths of one machine
+/Ultralytics/
 
 # Python bytecode and compiled extensions
 __pycache__/

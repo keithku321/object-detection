@@ -1,0 +1,54 @@
+# Shared dependencies for every task (Plans A, B, C and D) and the demo.
+# Install on Colab or any machine that already has PyTorch:   pip install -r requirements.txt
+# Install on a local NVIDIA PC (installs the CUDA build of PyTorch first):   pip install -r requirements-local.txt
+#
+# PyTorch, torchvision, numpy, pillow and matplotlib are deliberately NOT pinned here:
+#   - Colab ships its own tested set (Python 3.12, PyTorch 2.11, numpy 2.0.2 on runtime 2026.07) and reinstalling
+#     them there is slow and can force a runtime restart.
+#   - On Windows, "pip install torch" gives a CPU-only build, so local PCs install PyTorch from the CUDA index
+#     in requirements-local.txt instead.
+# Every results row records the torch and ultralytics versions (common/results.py), so differences stay visible.
+#
+# Pins below are the libraries whose version can change a reported number. A pin change needs approval from two
+# other owners (plans/05-team-workflow.md).
+
+# YOLO26 training and inference for Plans A, B and C (plans/decisions.md D5). Do not upgrade casually.
+ultralytics==8.4.175
+
+# OpenCV stays on version 4, which is what Colab ships. Without this cap a fresh PC gets opencv-python 5 from Ultralytics next to
+# opencv-python-headless 4 from pysodmetrics; both install the same cv2 module, so mixing major versions breaks it.
+opencv-python>=4.7,<5
+
+# Plan C: COCO-style AP_small / AP_medium / AP_large evaluation (smallobject/evalCoco.py uses pycocotools).
+# faster-coco-eval is what Ultralytics itself calls when it validates with save_json=True; listing it here stops Ultralytics from
+# installing it in the middle of a run.
+pycocotools==2.0.11
+faster-coco-eval==1.8.0
+
+# Plan D: segmentation metrics (S-measure, E-measure, weighted F-measure, MAE) and the PVTv2 / ResNet encoders.
+# pysodmetrics 1.6.2 needs scikit-image<0.26 and numpy<2.3.5, which have no wheels for Python 3.14; see
+# requirements-local.txt for the Python 3.14 workaround.
+pysodmetrics==1.6.2; python_version < "3.14"
+timm==1.0.30
+
+# Plan B (Phase 6): structured pruning
+torch-pruning==1.6.1
+
+# Plans A and B: perceptual hashing to find near-duplicate images across splits and folds
+imagehash==4.3.2
+
+# Dataset download from the Hugging Face dataset repo (common/datasets.py)
+huggingface_hub>=0.30
+
+# Export and CPU latency (Plan A ONNX, Plan B INT8 through ONNX Runtime). Ultralytics would install these on first
+# export anyway; pinning them keeps exported models comparable. On a GPU PC you may swap onnxruntime for
+# onnxruntime-gpu, but do not install both.
+onnx==1.23.2
+onnxslim==0.1.98
+onnxruntime==1.31.0
+
+# Demo app (demo/app.py) with one tab per task
+gradio==6.30.0
+
+# Tests (tests/)
+pytest==9.1.1
