@@ -67,7 +67,7 @@ underwater/underwater_colab.ipynb
 Brackish is large (about 14.7k images). `yolo26n` at 640 px is feasible on a T4 but not in one session at 100 epochs; train in resumable chunks with checkpoints on Drive, and time one epoch at gate G1 before choosing the epoch count. Do the Phase 2–3 exploration with a reduced epoch count and one seed.
 
 ## Risks
-- Brackish frames from the same video can be near-identical across splits; if so, accuracy is inflated.
+- Brackish frames from the same video can be near-identical across splits; if so, accuracy is inflated. **Confirmed on 2026-10-17** for the Roboflow copy: all 89 clips appear in train, val and test (decision D13). Report this, and decide whether to re-split by clip.
 - Attention gains on a small model can be within seed noise. The 3-seed final runs decide, not single runs.
 - URPC availability is the least certain part; fall back to DUO.
 - The base model already has C2PSA attention, so gains from extra attention may be smaller than the proposal expects; report that honestly.

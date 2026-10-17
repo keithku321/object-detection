@@ -67,6 +67,7 @@ def arrangeDataset(exportFolder, outputRoot, classNames):
     shutil.move(str(exportFolder), str(datasetRoot))
     mergeShards(datasetRoot / "train")
     movedSplits = convertRoboflowLayout(datasetRoot)
+    for metadataFile in (datasetRoot / "images").rglob("metadata.jsonl"): metadataFile.unlink()
     for roboflowName in ("train", "valid", "test"):
         leftoverFolder = datasetRoot / roboflowName
         if leftoverFolder.exists() and not any(file.is_file() for file in leftoverFolder.rglob("*")): shutil.rmtree(leftoverFolder)

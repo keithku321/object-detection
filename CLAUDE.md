@@ -64,6 +64,7 @@ The team should confirm these and record them in `plans/decisions.md`; the code 
 - **`LICENSE.txt` is the GNU AGPL v3** since commit `986de2a` (it was MIT before). The sentences below and in the plans that call this repository MIT are out of date; the team and supervisor should confirm which licence is intended.
 - The template notebook installs Ultralytics with `pip install -U ultralytics`, which ignores the pin. The four task notebooks install from `requirements.txt` instead.
 - **Dataset terms:** DAWN's Mendeley record lists CC BY-NC 3.0 but its description says all rights are reserved, so read it as the stricter one (private, educational, no mirror). VisDrone's official repo has no LICENSE file and its README states no licence, so its terms are still unconfirmed. The Brackish copy on Hugging Face is unofficial (CC BY 4.0, from the Roboflow export); the supervisor may prefer the official Aalborg University release.
+- **Brackish leaks video frames across its splits** (decision D13): all 89 source clips appear in train, val and test, so accuracy on the original split is optimistic. Whether to re-split by clip is open; do not quote Plan A accuracy without this caveat.
 - **Which split reports the numbers** is open (decision D10): Plans A and C log `val`, Plan B the held-out fold from `last.pt`, Plan D the test sets from the last epoch.
 
 The occlusion example inside the template notebook is not one of the four subtasks.
