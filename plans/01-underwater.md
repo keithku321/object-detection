@@ -22,8 +22,8 @@ Embed lightweight attention modules in a YOLO26 backbone/neck so it detects unde
 Steps (Phase 1):
 1. `common/datasets.py` downloads Brackish, writes `dataset.yaml`, runs the label checks from the existing notebook, records the checksum.
 2. URPC: convert VOC XML to YOLO if needed, **deduplicate with perceptual hashes**, confirm no train/val overlap before training.
-3. Keep Brackish's original split. Commit file lists under `common/splits/`.
-4. Check that Brackish's splits do not put near-identical frames from the same video on both sides.
+3. Do **not** keep Brackish's original split: it cuts every video clip into train, val and test (decision D13). `underwater/prepareBrackish.py` re-splits by clip (about 80/10/10) and commits the lists under `common/splits/brackish/`, with the original assignment saved as `original-<split>.txt`.
+4. Check that no clip lies in two splits (the file name tells the clip: `getClipName`); frames of different clips from the same fixed camera still look alike, so say so when quoting accuracy.
 
 ## Method
 - **Baselines (Phase 1):** `yolo26n` and `yolo26s` (main). Reference rows: `yolo11n` and `yolov8n`, since the proposal mentions them.
@@ -67,7 +67,7 @@ underwater/underwater_colab.ipynb
 Brackish is large (about 14.7k images). `yolo26n` at 640 px is feasible on a T4 but not in one session at 100 epochs; train in resumable chunks with checkpoints on Drive, and time one epoch at gate G1 before choosing the epoch count. Do the Phase 2–3 exploration with a reduced epoch count and one seed.
 
 ## Risks
-- Brackish frames from the same video can be near-identical across splits; if so, accuracy is inflated.
+- Brackish frames from the same video can be near-identical across splits; if so, accuracy is inflated. **Confirmed on 2026-10-17** for the Roboflow copy: all 89 clips appear in train, val and test. Fixed by the clip re-split of decision D13; keep the leakage numbers in the report as a finding.
 - Attention gains on a small model can be within seed noise. The 3-seed final runs decide, not single runs.
 - URPC availability is the least certain part; fall back to DUO.
 - The base model already has C2PSA attention, so gains from extra attention may be smaller than the proposal expects; report that honestly.

@@ -88,8 +88,8 @@ Using these datasets for a university final-year project is consistent with thei
 
 | Dataset | Terms found | Team rule |
 |---|---|---|
-| **VisDrone** | Copyright AISKYEYE (Tianjin University). Secondary sources describe CC BY-NC-SA 3.0 (attribution, non-commercial, share-alike); I could not retrieve the official license text. | Allowed for the educational project. Attribute (Zhu et al., TPAMI 2021). Do not republish. Confirm the license file in the official VisDrone GitHub repo and note it in `datasets/manifest.json`. Ultralytics downloads it itself. |
-| DAWN | Mendeley page: all rights reserved, commercial use and distribution prohibited; images came from web searches. | Educational use fine; no public mirror. |
+| **VisDrone** | Copyright AISKYEYE (Tianjin University). Secondary sources describe CC BY-NC-SA 3.0 (attribution, non-commercial, share-alike). The official GitHub repo has no LICENSE file and its README states no licence (checked 2026-10-17), so the official terms are unconfirmed. | Allowed for the educational project. Attribute (Zhu et al., TPAMI 2021). Do not republish. Ask AISKYEYE or the supervisor for the terms. Ultralytics downloads it itself. |
+| DAWN | Mendeley Data lists CC BY-NC 3.0 in its licence field, while the description says all rights are reserved and commercial use and distribution are prohibited; images came from web searches. | Educational use fine; read it as the stricter of the two; no public mirror. |
 | Brackish | Roboflow mirror lists CC BY 4.0 (confirm at vap.aau.dk). | May be mirrored with attribution if confirmed. |
 | URPC | Official download closed after the contest; many near-duplicate images. | Use a Roboflow copy or the cleaned DUO benchmark; deduplicate; no mirror. |
 | COD10K / CAMO | Research distribution by the authors. | Check each README; no mirror. |
