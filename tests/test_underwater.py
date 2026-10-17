@@ -58,11 +58,15 @@ def testDegradedSetsKeepLabels(tmp_path):
 
 # Build a tiny Roboflow export (train/, valid/ and test/ with images/ and labels/, plus data.yaml) with the given class names
 def makeRoboflowExport(exportFolder, classNames):
-    for roboflowName in ("train", "valid", "test"):
-        (exportFolder / roboflowName / "images").mkdir(parents=True)
-        (exportFolder / roboflowName / "labels").mkdir(parents=True)
-        cv2.imwrite(str(exportFolder / roboflowName / "images" / "frame.jpg"), numpy.zeros((16, 16, 3), dtype=numpy.uint8))
-        (exportFolder / roboflowName / "labels" / "frame.txt").write_text("1 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+    for roboflowName, shardNames in (("train", ("shard_000", "shard_001")), ("valid", ("",)), ("test", ("",))):
+        for shardName in shardNames:
+            shardFolder = exportFolder / roboflowName / shardName
+            (shardFolder / "images").mkdir(parents=True)
+            (shardFolder / "labels").mkdir(parents=True)
+            frameName = f"frame{shardName}"
+            cv2.imwrite(str(shardFolder / "images" / f"{frameName}.jpg"), numpy.zeros((16, 16, 3), dtype=numpy.uint8))
+            (shardFolder / "labels" / f"{frameName}.txt").write_text("1 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+            if shardName: (shardFolder / "images" / "metadata.jsonl").write_text("{}\n", encoding="utf-8")
     (exportFolder / "data.yaml").write_text(f"nc: {len(classNames)}\nnames: {list(classNames)}\n", encoding="utf-8")
 
 
@@ -73,8 +77,10 @@ def testBrackishExportIsArranged(tmp_path):
     yamlPath = arrangeDataset(tmp_path / "export", tmp_path / "out", classNames)
     datasetRoot = tmp_path / "out" / "brackish"
     assert yamlPath == datasetRoot / "dataset.yaml" and "images/test" in yamlPath.read_text(encoding="utf-8")
-    for splitName in ("train", "val", "test"):
+    assert sorted(file.name for file in (datasetRoot / "images" / "train").glob("*.jpg")) == ["frameshard_000.jpg", "frameshard_001.jpg"]
+    for splitName in ("val", "test"):
         assert (datasetRoot / "images" / splitName / "frame.jpg").exists() and (datasetRoot / "labels" / splitName / "frame.txt").exists()
+    assert not list((datasetRoot / "train").glob("shard_*"))
 
 
 # A different class order in the download is refused, because it would mislabel every box

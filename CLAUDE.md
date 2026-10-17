@@ -24,7 +24,7 @@ What has been checked, on Windows with Python 3.14 and the CPU build of PyTorch 
 - `pytest` passes 62 fast tests; `pytest -m slow` passes 15 tests that run real one-epoch Ultralytics training on the 8-image `coco8` set (custom layers, pretrained transfer through the layer map, the combined Plan C model, NWD, distillation, the speed protocol).
 - Every task's train, resume, evaluate and log path ran once on tiny made-up data, and the demo app starts and serves its four tabs.
 
-On 2026-10-17, in a Linux container without PyTorch, `pytest` gave 33 passed and 14 skipped (the skipped ones need torch, ultralytics, pycocotools or pysodmetrics). The same day, DAWN (all four weather sets) and Brackish were downloaded, converted and label-checked there; see "Datasets on disk" below.
+On 2026-10-17, in a Linux container with Python 3.13 and the CPU build of PyTorch 2.11.0, `pytest` passed 69 fast tests (the 15 `slow` tests were not run there). The same day, DAWN (all four weather sets) and Brackish were downloaded, converted and label-checked there, and Ultralytics' own dataset checker accepted both; see "Datasets on disk" below.
 
 What has **not** been checked: the four notebooks have never been run on Colab; nothing has been trained on any real dataset, and VisDrone, COD10K and CAMO have not been downloaded; nothing has run on a GPU, so the AMP and FP16 paths and TensorRT export are untested; `weather/prune.py` does not finish yet (see its header).
 
