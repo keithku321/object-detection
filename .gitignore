@@ -1,8 +1,13 @@
 # Datasets and training outputs (kept on Drive); only the dataset manifest is tracked
 datasets/*
 !datasets/manifest.json
-# Downloaded or prepared data inside a plan folder (underwater/dataset/, weather/dataset/, ...); the trailing slash leaves camoedge/dataset.py alone
-/*/dataset/
+# Downloaded or prepared data inside a plan folder (underwater/dataset/, weather/dataset/, ...); camoedge/dataset.py is a file and is not affected
+/*/dataset/*
+# Exception: Brackish is CC BY 4.0, which allows sharing with attribution, so its images, labels and LICENSE.md are tracked (see
+# underwater/dataset/brackish/LICENSE.md). The dataset.yaml there holds a path of one machine and is generated, so it stays ignored.
+# DAWN, VisDrone, COD10K and CAMO do not allow redistribution and must never be added here.
+!/underwater/dataset/brackish/
+/underwater/dataset/brackish/dataset.yaml
 runs/
 *.pt
 *.onnx

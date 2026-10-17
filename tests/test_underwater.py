@@ -6,7 +6,7 @@ cv2 = pytest.importorskip("cv2")
 
 from underwater.degrade import buildDegradedTestSets, degradeImage, severityLevels  # noqa: E402
 from underwater.enhance import enhanceDataset, enhanceImage, greyWorldWhiteBalance  # noqa: E402
-from underwater.prepareBrackish import arrangeDataset  # noqa: E402
+from underwater.prepareBrackish import arrangeDataset, getClipName, regroupByClip  # noqa: E402
 
 
 # A blue-green image with a weak red channel, like an underwater photograph
@@ -88,4 +88,37 @@ def testBrackishClassOrderMismatchIsRefused(tmp_path):
     makeRoboflowExport(tmp_path / "export", ["fish", "crab", "jellyfish", "shrimp", "small_fish", "starfish"])
     with pytest.raises(ValueError):
         arrangeDataset(tmp_path / "export", tmp_path / "out", ["crab", "fish", "jellyfish", "shrimp", "small_fish", "starfish"])
+
+
+# Build a dataset whose clips are cut into all three splits, like the Roboflow copy: ten clips of ten frames, each frame with one box
+def makeClipDataset(datasetRoot):
+    for clipIndex in range(10):
+        for frameIndex in range(10):
+            splitName = ("val" if frameIndex == 0 else "test" if frameIndex == 1 else "train")
+            imageName = f"2019-02-20_19-0{clipIndex}-02to2019-02-20_19-0{clipIndex}-13_1-{frameIndex:04d}_jpg.rf.abc"
+            (datasetRoot / "images" / splitName).mkdir(parents=True, exist_ok=True)
+            (datasetRoot / "labels" / splitName).mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(str(datasetRoot / "images" / splitName / f"{imageName}.jpg"), numpy.zeros((16, 16, 3), dtype=numpy.uint8))
+            (datasetRoot / "labels" / splitName / f"{imageName}.txt").write_text(f"{clipIndex % 2} 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+
+
+# After the re-split every clip lies in one split, images and labels moved together, the original lists were saved, and nothing was lost
+def testClipResplitKeepsClipsWhole(tmp_path):
+    datasetRoot = tmp_path / "brackish"
+    makeClipDataset(datasetRoot)
+    summary = regroupByClip(datasetRoot, 2, tmp_path / "splits")
+    splitsOfClip = {}
+    for splitName in ("train", "val", "test"):
+        imageNames = sorted(file.stem for file in (datasetRoot / "images" / splitName).glob("*.jpg"))
+        assert imageNames == sorted(file.stem for file in (datasetRoot / "labels" / splitName).glob("*.txt"))
+        for imageName in imageNames: splitsOfClip.setdefault(getClipName(imageName), set()).add(splitName)
+    assert len(splitsOfClip) == 10 and all(len(splits) == 1 for splits in splitsOfClip.values())
+    assert sum(summary["images"].values()) == 100 and summary["images"]["val"] >= 10 and summary["images"]["test"] >= 10
+    assert len((tmp_path / "splits" / "original-val.txt").read_text(encoding="utf-8").splitlines()) == 10
+    assert len((tmp_path / "splits" / "train.txt").read_text(encoding="utf-8").splitlines()) == summary["images"]["train"]
+
+
+# A file name that does not tell its clip is refused instead of being put in a split at random
+def testUnreadableClipNameIsRefused():
+    with pytest.raises(ValueError): getClipName("frame.jpg")
 
