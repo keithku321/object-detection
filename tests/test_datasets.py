@@ -17,6 +17,15 @@ def testManifestEntriesAreComplete():
         assert entry["sha256"] is None or len(entry["sha256"]) == 64, name
 
 
+# The download list names every dataset of the manifest, so a new entry cannot be forgotten there
+def testDownloadListCoversEveryManifestEntry():
+    readmeText = (datasets.datasetsRootFolder / "README.md").read_text(encoding="utf-8")
+    headings = {line.lower() for line in readmeText.splitlines() if line.startswith("## ")}
+    for name in datasets.loadManifest():
+        if name == "camoedge": continue
+        assert any(name in heading for heading in headings), f"datasets/README.md has no section for {name}"
+
+
 # The checksum matches hashlib, a wrong checksum is reported, and a missing checksum is neither pass nor fail
 def testChecksumVerification(tmp_path):
     filePath = tmp_path / "data.bin"

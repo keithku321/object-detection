@@ -1,6 +1,7 @@
 # Datasets and training outputs (kept on Drive); only the dataset manifest is tracked
 datasets/*
 !datasets/manifest.json
+!datasets/README.md
 # Downloaded or prepared data inside a plan folder (underwater/dataset/, weather/dataset/, ...); camoedge/dataset.py is a file and is not affected
 /*/dataset/*
 # Exception: Brackish is CC BY 4.0, which allows sharing with attribution, so its images, labels and LICENSE.md are tracked (see

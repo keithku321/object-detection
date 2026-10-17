@@ -92,6 +92,7 @@
     <Content Include="requirements-local.txt" />
     <Content Include="pytest.ini" />
     <Content Include="datasets\manifest.json" />
+    <Content Include="datasets\README.md" />
     <Content Include="underwater\underwater_colab.ipynb" />
     <Content Include="weather\weather_colab.ipynb" />
     <Content Include="smallobject\smallobject_colab.ipynb" />
