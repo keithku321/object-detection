@@ -283,6 +283,16 @@ Save the PNG somewhere else:
 python -m common.plotResults --task underwater --run runs/underwater/baseline-seed0 --output plots
 ```
 
+Copy the plots of a run into the tracked folder `results/plots/<task>/` so they can go into a pull request (`runs/` is git-ignored). Copy only the training-results plot and the normalised confusion matrix, and run both lines:
+
+```powershell
+New-Item -ItemType Directory -Force results/plots/underwater | Out-Null; Copy-Item runs/underwater/baseline-seed0/plots/*training-results*.png results/plots/underwater/
+```
+
+```powershell
+Copy-Item runs/underwater/baseline-seed0/confusion_matrix_normalized.png ("results/plots/underwater/underwater_baseline-seed0_confusion-matrix-normalised_" + (Get-Date -Format "yyyy-MM-dd_HH-mm-ss") + ".png")
+```
+
 Summary table of all results (mean ± std over seeds) as markdown:
 
 ```powershell
