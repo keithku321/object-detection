@@ -14,6 +14,7 @@ from camoedge.dataset import buildTestLoader, collectTestPairs, defaultImageSize
 from camoedge.metrics import CamoMetrics
 from camoedge.model import CamoEdgeNet, countParameters
 from common.environment import getDefaultDevice, getDefaultWorkerCount
+from common.plotResults import plotCamoEdgeRun, trySavePlot
 from common.results import appendResultRow, buildResultRow, findResultRow
 
 # Name of this task in the results log
@@ -74,7 +75,19 @@ def writeCategoryTable(perCategory, outputPath):
     return Path(outputPath)
 
 
-# Evaluate a checkpoint and append one results row per test set; the variant column is "<experiment>@<test set>"
+# Save the training-results plot of a checkpoint (loss curves from its stored history, plus test scores when given) into plots/ next to it
+# The learning rate is rebuilt from the schedule of camoedge/train.py, because the history does not store it
+def plotCheckpoint(checkpointPath, metricsByTestSet=None, perCategory=None, notes="", outputFolder=None):
+    def drawPlot():
+        from camoedge.train import decayPower
+        checkpoint = torch.load(checkpointPath, map_location="cpu", weights_only=False)
+        settings, history = checkpoint["settings"], checkpoint["history"]
+        learningRates = [settings["learningRate"] * (1.0 - epochIndex / settings["epochs"]) ** decayPower for epochIndex in range(len(history))]
+        return plotCamoEdgeRun(Path(checkpointPath).parent, history, settings, learningRates, metricsByTestSet, perCategory, notes, outputFolder)
+    return trySavePlot(drawPlot)
+
+
+# Evaluate a checkpoint, append one results row per test set (the variant column is "<experiment>@<test set>") and save the results plot
 def evaluateAndLog(checkpointPath, datasetRoot, device=None, maximumCount=None, notes=""):
     metricsByTestSet, perCategory, settings, parameterCount = evaluateCheckpoint(checkpointPath, datasetRoot, device, maximumCount)
     for testName, metrics in metricsByTestSet.items():
@@ -84,6 +97,7 @@ def evaluateAndLog(checkpointPath, datasetRoot, device=None, maximumCount=None, 
         if findResultRow(taskName, settings["encoderName"], variantLabel, settings["seed"], f"epochs={settings['epochs']};"): continue
         appendResultRow(buildResultRow(taskName, settings["encoderName"], variantLabel, settings["seed"], metrics, rowNotes))
     writeCategoryTable(perCategory, Path(checkpointPath).parent / "perCategory.csv")
+    plotCheckpoint(checkpointPath, metricsByTestSet, perCategory, notes)
     return metricsByTestSet
 
 

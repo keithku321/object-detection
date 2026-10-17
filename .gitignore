@@ -9,6 +9,8 @@ datasets/*
 # DAWN, VisDrone, COD10K and CAMO do not allow redistribution and must never be added here.
 !/underwater/dataset/brackish/
 /underwater/dataset/brackish/dataset.yaml
+# Ultralytics label caches (labels/train.cache and so on) are rebuilt on every machine and are megabytes in size
+*.cache
 runs/
 *.pt
 *.onnx

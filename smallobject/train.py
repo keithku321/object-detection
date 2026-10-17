@@ -16,9 +16,10 @@ import argparse
 from pathlib import Path
 
 from common.benchmark import countParametersAndGflops
+from common.plotResults import extractRowMetrics
 from common.registerModules import attentionBlocks, findConcatLayers, loadBaseYaml, makeLayerMapTrainer, registerCustomModules, writeVariantYaml
 from common.results import appendResultRow, buildResultRow, findResultRow
-from common.training import copyFinalWeights, defaultBatchSize, endToEndNote, makeRunName, protocolImageSize, trainDetector
+from common.training import copyFinalWeights, defaultBatchSize, endToEndNote, makeRunName, protocolImageSize, savePlotOfRun, trainDetector
 from smallobject.evalCoco import cocoMaximumDetections, evaluateSmallObjects, resolveSplitImages
 from smallobject.nwdLoss import computeNwdConstant, defaultNwdConstant, defaultNwdWeight, makeNwdTrainer
 
@@ -81,8 +82,10 @@ def runVariant(variantName, seed, epochs, project, dataYaml=defaultDataYaml, sca
     runName = makeRunName(reportedName.replace("+", "-"), seed)
     bestWeights = trainDetector(variant["modelSource"], dataYaml, seed, epochs, Path(project) / taskName, runName, imageSize, batch, device, workers,
                                 variant["trainerClass"], variant["pretrained"], trainArguments=extraTrainArguments)
-    if findResultRow(taskName, f"yolo26{scale}", reportedName, seed, f"split={evalSplit};"):
+    loggedRow = findResultRow(taskName, f"yolo26{scale}", reportedName, seed, f"split={evalSplit};")
+    if loggedRow:
         print(f"{reportedName} seed {seed} is already logged for split={evalSplit}; skipping evaluation")
+        savePlotOfRun(taskName, bestWeights, extractRowMetrics(loggedRow), notes=loggedRow.get("notes", ""))
     else:
         metrics = evaluateSmallObjects(bestWeights, dataYaml, evalSplit, imageSize, batch, device, maximumDetections)
         metrics.update(countParametersAndGflops(bestWeights, imageSize))
@@ -90,6 +93,7 @@ def runVariant(variantName, seed, epochs, project, dataYaml=defaultDataYaml, sca
         if "nwd" in variantName: notes += f"; nwdWeight={nwdWeight}; nwdConstant={nwdConstant:.2f}"
         appendResultRow(buildResultRow(taskName, f"yolo26{scale}", reportedName, seed, metrics, notes))
         print({key: round(value, 4) for key, value in metrics.items() if key in ("map50", "map50_95", "apSmall", "apMedium", "apLarge", "parameters", "gflops")})
+        savePlotOfRun(taskName, bestWeights, metrics, notes=notes)
     return copyFinalWeights(bestWeights, Path(project) / "weights", taskName, reportedName.replace("+", "-"), seed)
 
 

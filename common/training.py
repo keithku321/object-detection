@@ -6,6 +6,7 @@ from pathlib import Path
 
 from common.benchmark import countParametersAndGflops
 from common.environment import getDefaultDevice, getDefaultWorkerCount
+from common.plotResults import extractPerClassScores, extractRowMetrics, plotDetectionRun, trySavePlot
 from common.results import appendResultRow, buildResultRow, extractDetectionMetrics, findResultRow
 
 # Image size used for training and validation in every comparison
@@ -76,15 +77,23 @@ def evaluateDetector(weightsPath, dataYaml, split="val", imageSize=protocolImage
     return YOLO(str(weightsPath)).val(**arguments)
 
 
+# Save the training-results plot of a finished run into plots/ inside its run folder (weights sit in <run folder>/weights/)
+# finalMetrics are the numbers of the final evaluation and perClass the per-class scores, when available
+def savePlotOfRun(task, weightsPath, finalMetrics=None, perClass=None, notes=""):
+    runFolder = Path(weightsPath).resolve().parent.parent
+    return trySavePlot(plotDetectionRun, runFolder, task, runFolder.name, finalMetrics, perClass, notes)
+
+
 # Evaluate a trained model, add parameter and GFLOP counts, and append one row to results/<task>.csv; returns the row
 # A run that already has a row for the same split is not evaluated or logged again, so cells can be re-run after a Colab restart;
-# pass relog=True to force a new row
+# pass relog=True to force a new row. savePlot=True also saves the results plot of the run (see common/plotResults.py).
 def evaluateAndLog(task, modelName, variant, seed, weightsPath, dataYaml, split="val", imageSize=protocolImageSize,
-                   batch=defaultBatchSize, device=None, extraMetrics=None, extraArguments=None, notes="", resultsFolder=None, relog=False):
+                   batch=defaultBatchSize, device=None, extraMetrics=None, extraArguments=None, notes="", resultsFolder=None, relog=False, savePlot=True):
     existingRow = None if relog else (findResultRow(task, modelName, variant, seed, f"split={split};") if resultsFolder is None
                                       else findResultRow(task, modelName, variant, seed, f"split={split};", resultsFolder))
     if existingRow:
         print(f"{variant} seed {seed} is already logged for split={split}; skipping evaluation")
+        if savePlot: savePlotOfRun(task, weightsPath, extractRowMetrics(existingRow), notes=existingRow.get("notes", ""))
         return existingRow
     validationMetrics = evaluateDetector(weightsPath, dataYaml, split, imageSize, batch, device, extraArguments)
     metrics = extractDetectionMetrics(validationMetrics)
@@ -95,6 +104,7 @@ def evaluateAndLog(task, modelName, variant, seed, weightsPath, dataYaml, split=
     if resultsFolder is None: appendResultRow(row)
     else: appendResultRow(row, resultsFolder)
     print({key: row[key] for key in ("task", "model", "variant", "seed", "map50", "map50_95", "parameters", "gflops")})
+    if savePlot: savePlotOfRun(task, weightsPath, extractRowMetrics(row), extractPerClassScores(validationMetrics), row["notes"])
     return row
 
 

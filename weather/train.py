@@ -13,8 +13,9 @@ import argparse
 from pathlib import Path
 
 from common.benchmark import countParametersAndGflops
+from common.plotResults import extractRowMetrics, plotGroupedMetrics, trySavePlot
 from common.results import findResultRow
-from common.training import copyFinalWeights, defaultBatchSize, evaluateAndLog, protocolImageSize, trainDetector
+from common.training import copyFinalWeights, defaultBatchSize, evaluateAndLog, protocolImageSize, savePlotOfRun, trainDetector
 from weather.distillTrainer import distillPresets, trainDistilledStudent
 from weather.evalByWeather import logByWeather
 from weather.prepareDawn import buildFoldYamls, foldCount, getDawnSettings
@@ -69,9 +70,13 @@ def runFold(mode, foldIndex, seed, epochs, datasetRoot, project, imageSize=proto
         raise ValueError(f"Unknown mode '{mode}'. Known: student, teacher, {sorted(distillPresets)}")
     reportedWeights = bestWeights.parent / "last.pt"
     notes = f"fold={foldIndex}; epochs={epochs}; checkpoint=last" + (f"; overrides={overrides}" if overrides else "")
-    if findResultRow(taskName, modelName, variant, seed, f"fold={foldIndex};"): print(f"{variant} fold {foldIndex} seed {seed} is already logged; skipping evaluation")
+    loggedRow = findResultRow(taskName, modelName, variant, seed, f"fold={foldIndex};")
+    if loggedRow:
+        print(f"{variant} fold {foldIndex} seed {seed} is already logged; skipping evaluation")
+        savePlotOfRun(taskName, reportedWeights, extractRowMetrics(loggedRow), notes=loggedRow.get("notes", ""))
     else: evaluateAndLog(taskName, modelName, variant, seed, reportedWeights, dataYaml, "val", imageSize, batch, device, notes=notes, relog=True)
-    logByWeather(modelName, variant, seed, reportedWeights, datasetRoot, foldIndex, imageSize, device, notes=f"epochs={epochs}; checkpoint=last")
+    metricsByWeather = logByWeather(modelName, variant, seed, reportedWeights, datasetRoot, foldIndex, imageSize, device, notes=f"epochs={epochs}; checkpoint=last")
+    trySavePlot(plotGroupedMetrics, reportedWeights.parent.parent, taskName, runName, "by-weather", metricsByWeather, groupTitle="weather", notes=f"fold {foldIndex}")
     return copyFinalWeights(reportedWeights, Path(project) / "weights", taskName, f"{variant}-fold{foldIndex}", seed)
 
 

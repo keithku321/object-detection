@@ -121,7 +121,7 @@ def exportFinalWeights(checkpointPath, weightsFolder):
     return targetPath
 
 
-# Command line entry point: train, then evaluate on the test sets and append results rows
+# Command line entry point: train, then evaluate on the test sets, append results rows and save the results plot
 def main():
     parser = argparse.ArgumentParser(description="Train one CamoEdge experiment")
     parser.add_argument("--experiment", default="E1", choices=sorted(experimentModelSettings))
@@ -141,9 +141,13 @@ def main():
     arguments = parser.parse_args()
     checkpointPath = trainCamoEdge(arguments.experiment, arguments.dataset, arguments.project, arguments.seed, arguments.epochs, arguments.batch, arguments.imgsz,
                                    arguments.lr, arguments.encoder, arguments.gating, arguments.edge_weight, arguments.device, maximumCount=arguments.subset)
-    if not arguments.skip_evaluation:
+    notes = f"subset={arguments.subset}" if arguments.subset else ""
+    if arguments.skip_evaluation:
+        from camoedge.evaluate import plotCheckpoint
+        plotCheckpoint(checkpointPath, notes=notes)
+    else:
         from camoedge.evaluate import evaluateAndLog
-        evaluateAndLog(checkpointPath, arguments.dataset, arguments.device, notes=f"subset={arguments.subset}" if arguments.subset else "")
+        evaluateAndLog(checkpointPath, arguments.dataset, arguments.device, notes=notes)
 
 
 if __name__ == "__main__":

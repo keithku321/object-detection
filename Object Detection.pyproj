@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>960d1490-c016-405e-b5c1-59a29115b9f5</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Object_Detection.py</StartupFile>
+    <StartupFile>Object Detection.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,12 +22,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="demo\webcam.py" />
-    <Compile Include="Object_Detection.py" />
+    <Compile Include="Object Detection.py" />
     <Compile Include="common\__init__.py" />
     <Compile Include="common\benchmark.py" />
     <Compile Include="common\datasets.py" />
     <Compile Include="common\demoSupport.py" />
     <Compile Include="common\environment.py" />
+    <Compile Include="common\plotResults.py" />
     <Compile Include="common\modules.py" />
     <Compile Include="common\registerModules.py" />
     <Compile Include="common\results.py" />
@@ -66,6 +67,7 @@
     <Compile Include="tests\test_datasets.py" />
     <Compile Include="tests\test_distill.py" />
     <Compile Include="tests\test_modules.py" />
+    <Compile Include="tests\test_plotResults.py" />
     <Compile Include="tests\test_results.py" />
     <Compile Include="tests\test_smallobject.py" />
     <Compile Include="tests\test_ultralytics_integration.py" />
