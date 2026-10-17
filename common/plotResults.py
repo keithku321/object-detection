@@ -1,21 +1,27 @@
-### Result plots: one detailed Matplotlib figure per finished run, saved as a PNG in plots/ inside the run folder.
+### Result plots: one detailed Matplotlib figure per finished run, saved as a PNG in results/plots/<task>/ (tracked by git, so it goes into a PR).
 ### Flow: a training script finishes, then evaluates; the evaluation numbers (and per-class scores) are handed to plotDetectionRun,
 ### which also reads the per-epoch results.csv of the run. Plans A, B and C go through common/training.py (evaluateAndLog or savePlotOfRun),
 ### Plan B adds a by-weather plot, and Plan D goes through camoedge/evaluate.py (plotCheckpoint).
 ### The file name carries the task, the run, the kind of plot and the local date and time, for example
 ###   underwater_baseline-seed0_training-results_2026-10-17_23-40-12.png
+### The training-results plot of a detection run is followed by Ultralytics' normalised confusion matrix, copied next to it under a matching name.
 ### Figures are built with matplotlib.figure.Figure, not pyplot, so no backend is switched and a notebook keeps its own inline plots.
 ###   python -m common.plotResults --task underwater --run runs/underwater/baseline-seed0       (redraw the plot of a finished detection run)
 ###   python -m common.plotResults --task camoedge --checkpoint runs/camoedge/E1-seed0/last.pt  (redraw the plot of a CamoEdge run)
 ### Steward: plan B owner (same area as common/results.py). Changes need review like any shared file.
 import argparse
 import csv
+import shutil
 import textwrap
 from datetime import datetime
 from pathlib import Path
 
-# Name of the folder inside a run folder that holds its plots
-plotsFolderName = "plots"
+from common.results import resultsFolder
+
+# Folder for the final plots, one sub-folder per task; it is inside results/ and is not ignored by git, so plots can be committed
+defaultPlotsFolder = resultsFolder / "plots"
+# Name of the normalised confusion matrix that Ultralytics saves in a run folder
+confusionMatrixFileName = "confusion_matrix_normalized.png"
 # Resolution of saved plots in dots per inch
 plotDpi = 150
 # Size of the figure in inches (width, height)
@@ -39,9 +45,9 @@ def makePlotFileName(task, runName, plotKind, moment=None):
     return "".join(character if character.isalnum() or character in "-_.@+" else "-" for character in rawName) + ".png"
 
 
-# Folder where the plots of a run are saved (created when needed)
-def getPlotsFolder(runFolder, outputFolder=None):
-    folder = Path(outputFolder) if outputFolder else Path(runFolder) / plotsFolderName
+# Folder where the plots of a task are saved (created when needed): outputFolder when given, otherwise results/plots/<task>/
+def getPlotsFolder(task, outputFolder=None):
+    folder = Path(outputFolder) if outputFolder else defaultPlotsFolder / task
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
@@ -172,14 +178,24 @@ def drawSummary(axis, title, lines):
     for spine in axis.spines.values(): spine.set_color("#BBBBBB")
 
 
-# Save a finished figure into the plots folder of a run and print where it went; returns the file path
-def saveFigure(figure, runFolder, task, runName, plotKind, outputFolder=None, moment=None):
+# Save a finished figure into the plots folder of its task and print where it went; returns the file path
+def saveFigure(figure, task, runName, plotKind, outputFolder=None, moment=None):
     moment = moment or datetime.now()
     figure.text(0.995, 0.003, f"created {moment.strftime('%Y-%m-%d %H:%M:%S')}", ha="right", va="bottom", fontsize=smallFontSize - 1, color="#777777")
-    plotPath = getPlotsFolder(runFolder, outputFolder) / makePlotFileName(task, runName, plotKind, moment)
+    plotPath = getPlotsFolder(task, outputFolder) / makePlotFileName(task, runName, plotKind, moment)
     figure.savefig(plotPath, dpi=plotDpi)
     print(f"Saved plot: {plotPath}")
     return plotPath
+
+
+# Copy the normalised confusion matrix of a run folder next to a saved plot, named like the plot; returns the new path, or None when the run has none
+def copyConfusionMatrix(runFolder, plotPath):
+    sourcePath = Path(runFolder) / confusionMatrixFileName
+    if not sourcePath.exists(): return None
+    targetPath = Path(plotPath).with_name(Path(plotPath).name.replace("training-results", "confusion-matrix-normalised"))
+    shutil.copy2(sourcePath, targetPath)
+    print(f"Saved plot: {targetPath}")
+    return targetPath
 
 
 # Training-results plot of an Ultralytics detection run, read from <run folder>/results.csv. Returns the PNG path, or None when there is no results.csv.
@@ -239,11 +255,13 @@ def plotDetectionRun(runFolder, task, runName, finalMetrics=None, perClass=None,
     if notes: summaryLines += ["", f"notes: {notes}"]
     drawSummary(summaryAxis, "Run summary", summaryLines)
     figure.suptitle(f"{task} | {runName} | training results ({len(epochs)} epoch{'s' if len(epochs) != 1 else ''})", fontsize=14, fontweight="bold")
-    return saveFigure(figure, runFolder, task, runName, "training-results", outputFolder, moment)
+    plotPath = saveFigure(figure, task, runName, "training-results", outputFolder, moment)
+    copyConfusionMatrix(runFolder, plotPath)
+    return plotPath
 
 
 # Bar plot of one model scored on several groups, for example the weather types of Plan B; metricsByGroup is {group: {metric: value, "images": count}}
-def plotGroupedMetrics(runFolder, task, runName, plotKind, metricsByGroup, metricNames=("map50", "map50_95", "precision", "recall"), groupTitle="group",
+def plotGroupedMetrics(task, runName, plotKind, metricsByGroup, metricNames=("map50", "map50_95", "precision", "recall"), groupTitle="group",
                        notes="", outputFolder=None, moment=None):
     from matplotlib.figure import Figure
     if not metricsByGroup:
@@ -256,7 +274,7 @@ def plotGroupedMetrics(runFolder, task, runName, plotKind, metricsByGroup, metri
     groups = {name: [metrics.get(name, 0.0) for metrics in metricsByGroup.values()] for name in metricNames}
     drawBars(axis, categories, groups, f"Final evaluation by {groupTitle} (n = images)", "score", xLabel=groupTitle)
     figure.suptitle(f"{task} | {runName} | by {groupTitle}" + (f" | {notes}" if notes else ""), fontsize=13, fontweight="bold")
-    return saveFigure(figure, runFolder, task, runName, plotKind, outputFolder, moment)
+    return saveFigure(figure, task, runName, plotKind, outputFolder, moment)
 
 
 # Training plot of a CamoEdge run from the per-epoch history stored in its checkpoint. history: list of {"epoch", "loss", "maskLoss", "edgeLoss", "seconds"},
@@ -299,7 +317,7 @@ def plotCamoEdgeRun(runFolder, history, settings, learningRates=None, metricsByT
     if notes: summaryLines += ["", f"notes: {notes}"]
     drawSummary(summaryAxis, "Run summary", summaryLines)
     figure.suptitle(f"camoedge | {runName} | training results ({len(history)} epoch{'s' if len(history) != 1 else ''})", fontsize=14, fontweight="bold")
-    return saveFigure(figure, runFolder, "camoedge", runName, "training-results", outputFolder, moment)
+    return saveFigure(figure, "camoedge", runName, "training-results", outputFolder, moment)
 
 
 # Call a plotting function and never let a plotting problem stop a run that took hours: the problem is printed and None is returned
@@ -317,7 +335,7 @@ def main():
     parser.add_argument("--task", required=True, choices=["underwater", "weather", "smallobject", "camoedge"])
     parser.add_argument("--run", help="run folder that contains results.csv (Ultralytics tasks)")
     parser.add_argument("--checkpoint", help="last.pt of a CamoEdge run")
-    parser.add_argument("--output", help="folder for the PNG; default is plots/ inside the run folder")
+    parser.add_argument("--output", help="folder for the PNG; default is results/plots/<task>/")
     arguments = parser.parse_args()
     if arguments.task == "camoedge":
         if not arguments.checkpoint: parser.error("--checkpoint is required for camoedge")

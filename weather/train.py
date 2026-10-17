@@ -76,7 +76,7 @@ def runFold(mode, foldIndex, seed, epochs, datasetRoot, project, imageSize=proto
         savePlotOfRun(taskName, reportedWeights, extractRowMetrics(loggedRow), notes=loggedRow.get("notes", ""))
     else: evaluateAndLog(taskName, modelName, variant, seed, reportedWeights, dataYaml, "val", imageSize, batch, device, notes=notes, relog=True)
     metricsByWeather = logByWeather(modelName, variant, seed, reportedWeights, datasetRoot, foldIndex, imageSize, device, notes=f"epochs={epochs}; checkpoint=last")
-    trySavePlot(plotGroupedMetrics, reportedWeights.parent.parent, taskName, runName, "by-weather", metricsByWeather, groupTitle="weather", notes=f"fold {foldIndex}")
+    trySavePlot(plotGroupedMetrics, taskName, runName, "by-weather", metricsByWeather, groupTitle="weather", notes=f"fold {foldIndex}")
     return copyFinalWeights(reportedWeights, Path(project) / "weights", taskName, f"{variant}-fold{foldIndex}", seed)
 
 
