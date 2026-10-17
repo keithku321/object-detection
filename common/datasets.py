@@ -26,6 +26,8 @@ chunkSize = 1 << 20
 defaultHashDistance = 4
 # Environment variable that holds the Hugging Face token (set it from Colab Secrets, never write it in a notebook)
 huggingFaceTokenVariable = "HF_TOKEN"
+# User agent sent with downloads, because some hosts (for example Mendeley Data) refuse Python's default one with HTTP 403
+downloadUserAgent = "object-detection-fyp/1.0 (educational use)"
 
 
 # Read datasets/manifest.json and return its entries as a dict keyed by dataset name
@@ -70,7 +72,7 @@ def downloadFile(url, targetPath, expectedHash=None):
         print(f"{targetPath.name} is already downloaded and verified")
         return targetPath
     temporaryPath = targetPath.with_suffix(targetPath.suffix + ".part")
-    with urllib.request.urlopen(url) as response, temporaryPath.open("wb") as file:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": downloadUserAgent})) as response, temporaryPath.open("wb") as file:
         totalBytes = int(response.headers.get("Content-Length", 0))
         receivedBytes = 0
         for block in iter(lambda: response.read(chunkSize), b""):
@@ -105,6 +107,8 @@ def extractZip(zipPath, targetFolder):
 # Get a dataset as described by its manifest entry and return the local folder (or the Ultralytics YAML name)
 # access "huggingface": download the zip from the Hugging Face dataset repo, verify it and unzip it
 # access "url": download the zip from a direct link, verify it and unzip it
+# access "url" with downloadFiles: a dataset delivered as several zips (name, url, sha256 each); every zip is verified and unzipped
+# into <targetRoot>/<extractFolder>, and that folder is returned
 # access "ultralytics": Ultralytics downloads and converts the dataset itself on first use of the named YAML
 # access "manual": the licence or the host needs a person to download the files; the entry's instructions are printed
 def fetchDataset(datasetName, targetRoot=datasetsRootFolder, token=None, path=manifestPath):
@@ -114,6 +118,12 @@ def fetchDataset(datasetName, targetRoot=datasetsRootFolder, token=None, path=ma
     if access == "ultralytics":
         print(f"{datasetName}: Ultralytics downloads this dataset when you train with data='{entry['ultralyticsYaml']}'")
         return entry["ultralyticsYaml"]
+    if access == "url" and entry.get("downloadFiles"):
+        extractFolder = targetRoot / entry.get("extractFolder", "")
+        for fileEntry in entry["downloadFiles"]:
+            zipPath = downloadFile(fileEntry["url"], targetRoot / "downloads" / fileEntry["name"], fileEntry.get("sha256"))
+            extractZip(zipPath, extractFolder)
+        return extractFolder
     if access == "manual" or not (entry.get("huggingFaceRepo") or entry.get("downloadUrl")):
         raise RuntimeError(f"{datasetName} cannot be downloaded automatically yet.\n{entry.get('instructions', 'See the dataset page in datasets/manifest.json.')}")
     zipPath = targetRoot / "downloads" / entry["zipName"]

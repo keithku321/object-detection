@@ -13,7 +13,7 @@ Transfer accuracy from a **YOLO26m teacher to a YOLO26n student** on DAWN with n
 | Compression (extension) | Pruned + INT8 student: accuracy versus size versus latency |
 
 ## Data: DAWN
-- About 1,000 real-traffic images in four weather sets (fog, rain, snow, sand). Classes: car, bus, truck, person, motorcycle, bicycle. Annotations in XML and TXT (YOLO). Verify the class order against the YOLO files.
+- About 1,000 real-traffic images in four weather sets (fog, rain, snow, sand). Classes: car, bus, truck, person, motorcycle, bicycle. Annotations in XML and TXT (YOLO). The YOLO files number classes like COCO counting from 1 (person 1, bicycle 2, car 3, motorcycle 4, bus 6, train 7, truck 8), not in the order above, so `weather/prepareDawn.py` renumbers them by class name; the single `train` box is dropped (decision D11).
 - **Terms:** the Mendeley page reserves all rights and prohibits commercial use and distribution; the images came from web searches. Educational use is fine; do not publish a mirror. `common/datasets.py` downloads from the original source; keep any processed copy private.
 - Do not train from scratch on 1,000 images: start every model from COCO-pretrained weights.
 - **Splits:** a single 70/15/15 split leaves about 150 test images, too noisy. Use **stratified 5-fold cross-validation** (stratify by weather type); commit each fold's file list. Check for near-duplicate images across folds with perceptual hashing.

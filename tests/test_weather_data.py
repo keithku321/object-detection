@@ -35,9 +35,10 @@ def makeRawDownload(rawRoot):
 
 
 # Images with the same file name in different weather folders keep their own labels; XML is converted; a missing label becomes empty
+# The made-up labels already follow the project class order, so their numbers are copied unchanged (sourceClassIds=None)
 def testConversionKeepsLabelsPerWeather(tmp_path):
     makeRawDownload(tmp_path / "raw")
-    imagesByWeather = prepareDawn.convertDawn(tmp_path / "raw", tmp_path / "dawn", weatherTypes, classNames)
+    imagesByWeather = prepareDawn.convertDawn(tmp_path / "raw", tmp_path / "dawn", weatherTypes, classNames, sourceClassIds=None)
     assert [len(imagesByWeather[weatherType]) for weatherType in weatherTypes] == [7, 5, 5, 5]
     for weatherIndex, weatherType in enumerate(weatherTypes):
         assert (tmp_path / "dawn" / "labels" / weatherType / "0.txt").read_text(encoding="utf-8").startswith(f"{weatherIndex} ")
@@ -49,7 +50,7 @@ def testConversionKeepsLabelsPerWeather(tmp_path):
 # Folds are stratified by weather, written as relative lists, and rebuilt into per-fold YAML files with disjoint train and val
 def testFoldsAndYamls(tmp_path):
     makeRawDownload(tmp_path / "raw")
-    imagesByWeather = prepareDawn.convertDawn(tmp_path / "raw", tmp_path / "dawn", weatherTypes, classNames)
+    imagesByWeather = prepareDawn.convertDawn(tmp_path / "raw", tmp_path / "dawn", weatherTypes, classNames, sourceClassIds=None)
     folds = prepareDawn.assignFolds(imagesByWeather, count=5, seed=0)
     assert sorted(len(fold) for fold in folds) == [4, 4, 4, 5, 5] and sum(len(fold) for fold in folds) == 22
     prepareDawn.writeFoldLists(folds, tmp_path / "dawn", tmp_path / "splits")
@@ -67,3 +68,23 @@ def testFoldsAndYamls(tmp_path):
 def testSettingsComeFromManifest():
     manifestWeatherTypes, manifestClassNames = prepareDawn.getDawnSettings()
     assert manifestWeatherTypes == weatherTypes and manifestClassNames == classNames
+
+
+# The real download numbers its classes like COCO counting from 1; the numbers are renumbered by class name and the unused class is dropped
+def testRealDownloadClassNumbersAreRemapped(tmp_path):
+    labelFolder = tmp_path / "raw" / "Fog" / "Fog_YOLO_darknet"
+    labelFolder.mkdir(parents=True)
+    saveRandomImage(tmp_path / "raw" / "Fog" / "fog-1.jpg", seed=1)
+    (labelFolder / "fog-1.txt").write_text("3 0.5 0.5 0.2 0.2\n1 0.1 0.1 0.1 0.1\n7 0.3 0.3 0.1 0.1\n8 0.7 0.7 0.2 0.2\n6 0.4 0.4 0.1 0.1\n", encoding="utf-8")
+    prepareDawn.convertDawn(tmp_path / "raw", tmp_path / "dawn", ["fog"], classNames)
+    convertedLines = (tmp_path / "dawn" / "labels" / "fog" / "fog-1.txt").read_text(encoding="utf-8").splitlines()
+    assert [line.split()[0] for line in convertedLines] == ["0", "3", "2", "1"]
+    assert convertedLines[0] == "0 0.5 0.5 0.2 0.2"
+
+
+# The source class table in the manifest names only classes that the project uses, plus the one dropped class
+def testSourceClassTableMatchesProjectClasses():
+    sourceClassIds = prepareDawn.getDawnSourceClassIds()
+    assert set(sourceClassIds.values()) - set(classNames) == {"train"}
+    assert set(classNames) <= set(sourceClassIds.values())
+

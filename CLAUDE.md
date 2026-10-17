@@ -18,13 +18,15 @@ Cross-cutting documents, which are not plans:
 - `plans/decisions.md`: decisions log, including any fallback from YOLO26
 
 ## Current state
-A first draft of everything the plans list has been written (2026-10-11). It is scaffolding to work from, not finished research: **no model has been trained on a real dataset yet, nothing has run on Colab or a GPU, and `results/` is still empty.** The plans in `plans/` are unchanged.
+A first draft of everything the plans list has been written (2026-10-11). It is scaffolding to work from, not finished research: **no model has been trained on a real dataset yet, nothing has run on Colab or a GPU, and `results/` is still empty.** The plans in `plans/` are unchanged apart from corrections of 2026-10-17 to the dataset terms and the DAWN class numbering (decisions D3, D10 to D12).
 
 What has been checked, on Windows with Python 3.14 and the CPU build of PyTorch 2.11.0:
 - `pytest` passes 62 fast tests; `pytest -m slow` passes 15 tests that run real one-epoch Ultralytics training on the 8-image `coco8` set (custom layers, pretrained transfer through the layer map, the combined Plan C model, NWD, distillation, the speed protocol).
 - Every task's train, resume, evaluate and log path ran once on tiny made-up data, and the demo app starts and serves its four tabs.
 
-What has **not** been checked: the four notebooks have never been run on Colab; no real dataset (Brackish, DAWN, VisDrone, COD10K, CAMO) has been downloaded or trained on; nothing has run on a GPU, so the AMP and FP16 paths and TensorRT export are untested; `weather/prune.py` does not finish yet (see its header).
+On 2026-10-17, in a Linux container without PyTorch, `pytest` gave 33 passed and 14 skipped (the skipped ones need torch, ultralytics, pycocotools or pysodmetrics). The same day, DAWN (all four weather sets) and Brackish were downloaded, converted and label-checked there; see "Datasets on disk" below.
+
+What has **not** been checked: the four notebooks have never been run on Colab; nothing has been trained on any real dataset, and VisDrone, COD10K and CAMO have not been downloaded; nothing has run on a GPU, so the AMP and FP16 paths and TensorRT export are untested; `weather/prune.py` does not finish yet (see its header).
 
 Starter files: `YOLO26 Occlusion.ipynb` (the notebook template, untouched), `demo/webcam.py` (live webcam demo, moved there from the repository root), `Object_Detection.py` (Visual Studio startup file; it now starts the demo app) and the Visual Studio project files.
 
@@ -32,14 +34,22 @@ Starter files: `YOLO26 Occlusion.ipynb` (the notebook template, untouched), `dem
 |---|---|---|
 | Environment | `requirements.txt`, `requirements-local.txt`, `pytest.ini` | Pinned shared requirements (no PyTorch, so Colab keeps its own); the local-PC variant adds the CUDA build of PyTorch and the Python 3.14 note |
 | Shared code | `common/datasets.py`, `results.py`, `summariseResults.py`, `benchmark.py`, `modules.py`, `registerModules.py`, `training.py`, `demoSupport.py`, `environment.py` | Manifest-driven download and checks; results log and mean ± std summary; speed protocol; custom layers; YAML and pretrained-transfer tools; the one train, resume, evaluate and log loop used by Plans A, B and C; demo building blocks |
-| Data | `datasets/manifest.json` | One entry per dataset with source, licence notes and instructions. **Download locations and SHA-256 values are still empty** and must be filled in by the owners |
-| Plan A | `underwater/train.py`, `enhance.py`, `degrade.py`, `demoTab.py`, `underwater_colab.ipynb` | Variants `baseline`, `yolo11`, `yolov8`, `<block>-<placement>` (for example `eca-a`); model YAMLs are generated into `underwater/configs/` |
-| Plan B | `weather/prepareDawn.py`, `distillTrainer.py`, `train.py`, `evalByWeather.py`, `prune.py`, `quantise.py`, `demoTab.py`, `weather_colab.ipynb` | 5-fold preparation, distillation on top of Ultralytics' built-in feature, per-weather evaluation. Phase 6 extras: `quantise.py` produced a working INT8 model in a smoke test; `prune.py` is not working yet |
+| Data | `datasets/manifest.json` | One entry per dataset with source, licence notes and instructions. DAWN has its four Mendeley download links with the published SHA-256 values; Brackish names an unofficial CC BY 4.0 Hugging Face copy; **the other download locations and the SHA-256 of the team's own zips are still empty** and must be filled in by the owners. `camoedge` is the entry for the combined `camo.zip` that Plan D checks |
+| Plan A | `underwater/train.py`, `prepareBrackish.py`, `enhance.py`, `degrade.py`, `demoTab.py`, `underwater_colab.ipynb` | Variants `baseline`, `yolo11`, `yolov8`, `<block>-<placement>` (for example `eca-a`); model YAMLs are generated into `underwater/configs/` |
+| Plan B | `weather/prepareDawn.py` (download, class renumbering, folds), `distillTrainer.py`, `train.py`, `evalByWeather.py`, `prune.py`, `quantise.py`, `demoTab.py`, `weather_colab.ipynb` | 5-fold preparation, distillation on top of Ultralytics' built-in feature, per-weather evaluation. Phase 6 extras: `quantise.py` produced a working INT8 model in a smoke test; `prune.py` is not working yet |
 | Plan C | `smallobject/train.py`, `evalCoco.py`, `nwdLoss.py`, `demoTab.py`, `smallobject_colab.ipynb` | Variants are features joined by `+` (for example `p2+eca+nwd`); model YAMLs are generated into `smallobject/configs/` |
 | Plan D | `camoedge/dataset.py`, `model.py`, `losses.py`, `metrics.py`, `train.py`, `evaluate.py`, `demoTab.py`, `camoedge_colab.ipynb` | Experiments E1 to E5 from one network class; plain PyTorch |
 | Demo and tests | `demo/app.py`, `tests/` | Gradio app with one tab per task; fast tests run by default, tests that download weights or train an epoch are marked `slow` (`pytest -m slow`) |
 
-Not created yet: `results/*.csv` (written by the first run), `common/splits/` (written by `weather/prepareDawn.py`), trained weights, and the Phase 0 entries in `plans/decisions.md` (the findings below are proposals for the team to record there).
+Not created yet: `results/*.csv` (written by the first run), trained weights, and the Phase 0 entries in `plans/decisions.md` (the findings below are proposals for the team to record there). `common/splits/dawn/` now holds the five DAWN fold lists written by `weather/prepareDawn.py` (relative paths, deterministic from fold seed 0); everybody must use these lists.
+
+### Datasets on disk
+Files under `<plan folder>/dataset/` (git-ignored, never committed) were made on 2026-10-17 in the cloud container of the session, which is reclaimed after inactivity: treat them as a test of the scripts, not as the team's copy. Anyone can rebuild them:
+- `python -m weather.prepareDawn --download-to weather/dataset --output weather/dataset/dawn` downloads DAWN (139 MB) from Mendeley Data, verifies the published SHA-256 values, renumbers the classes and writes the folds. The Colab notebook does the same, so nothing is uploaded to Drive.
+- `python -m underwater.prepareBrackish --output underwater/dataset [--zip]` downloads the CC BY 4.0 copy of Brackish (0.7 GB) and writes `brackish/` with `dataset.yaml`; `--zip` builds the `brackish.zip` that the notebook reads from Drive.
+- VisDrone (1.8 GB; Ultralytics downloads it) and COD10K (about 1.5 GB, with CAMO 0.2 GB) are above the 1 GB limit the team set for local copies, so they are not fetched by script.
+- **DAWN class numbers:** the YOLO files of the real download number classes like COCO counting from 1 (1 person, 2 bicycle, 3 car, 4 motorcycle, 6 bus, 7 train, 8 truck), not in the order of the manifest. Copying them unchanged would have trained on wrong and out-of-range classes. `convertDawn` now renumbers by class name through `sourceYoloClassIds`, drops the single `train` box, and was checked against the PASCAL VOC names of all 1,027 images (decision D11).
+- **Downloads need a User-Agent:** Mendeley Data answers Python's default one with HTTP 403, so `common/datasets.downloadFile` sends its own.
 
 ### Findings from reading Ultralytics 8.4.175 that differ from the plans
 The team should confirm these and record them in `plans/decisions.md`; the code already follows them.
@@ -53,6 +63,8 @@ The team should confirm these and record them in `plans/decisions.md`; the code 
 ### Things to check that are not code
 - **`LICENSE.txt` is the GNU AGPL v3** since commit `986de2a` (it was MIT before). The sentences below and in the plans that call this repository MIT are out of date; the team and supervisor should confirm which licence is intended.
 - The template notebook installs Ultralytics with `pip install -U ultralytics`, which ignores the pin. The four task notebooks install from `requirements.txt` instead.
+- **Dataset terms:** DAWN's Mendeley record lists CC BY-NC 3.0 but its description says all rights are reserved, so read it as the stricter one (private, educational, no mirror). VisDrone's official repo has no LICENSE file and its README states no licence, so its terms are still unconfirmed. The Brackish copy on Hugging Face is unofficial (CC BY 4.0, from the Roboflow export); the supervisor may prefer the official Aalborg University release.
+- **Which split reports the numbers** is open (decision D10): Plans A and C log `val`, Plan B the held-out fold from `last.pt`, Plan D the test sets from the last epoch.
 
 The occlusion example inside the template notebook is not one of the four subtasks.
 
@@ -84,8 +96,8 @@ The occlusion example inside the template notebook is not one of the four subtas
 - **Check pretrained loading:** after inserting a layer into a model YAML, confirm the log line "Transferred N/M items from pretrained weights" did not collapse.
 
 ## Data and licensing
-- Never commit datasets, weights, `*.zip`, `*.onnx` or `runs/` (already in `.gitignore`), and never commit tokens or Drive links with edit access.
-- Datasets are used for educational purposes. **Do not republish third-party datasets**; the repo ships download scripts and SHA-256 checksums (`datasets/manifest.json`), not images. Terms per dataset are in `plans/00-main-plan.md`.
+- Never commit datasets, weights, `*.zip`, `*.onnx` or `runs/` (already in `.gitignore`, as are `datasets/*` and `/*/dataset/`, the folder each plan may use for a local copy), and never commit tokens or Drive links with edit access. Small fold lists under `common/splits/` are the exception: they are committed.
+- Datasets are used for educational purposes. **Do not republish third-party datasets**; the repo ships download scripts and SHA-256 checksums (`datasets/manifest.json`), not images. A zip that the notebook checks must have its own manifest entry whose `zipName` and `sha256` describe that zip (not the authors' release), and a hand-made zip has one top-level folder named like the notebook's `datasetFolderName`. Terms per dataset are in `plans/00-main-plan.md`.
 - Storage: code on GitHub; processed datasets on a Hugging Face dataset repo (private unless the license allows); checkpoints on each member's Google Drive; final small weights on a GitHub release or Hugging Face.
 - Ultralytics is AGPL-3.0 while this repo is MIT: do not make the repo or the demo public without the team and supervisor deciding first.
 

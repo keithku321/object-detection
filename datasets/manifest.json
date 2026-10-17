@@ -1,5 +1,5 @@
 {
-  "schemaNote": "One entry per dataset. 'access' is one of: ultralytics (Ultralytics downloads it), huggingface (zip in the team's Hugging Face dataset repo), url (direct link), manual (a person must download it). Fill in downloadUrl or huggingFaceRepo, zipName and sha256 once the processed zip exists; common/datasets.py refuses to continue on a checksum mismatch and prints the real checksum when none is recorded. Never put tokens or Google Drive links with edit access in this file. Licence text is a practical reading of the published terms (plans/00-main-plan.md section 4), not legal advice.",
+  "schemaNote": "One entry per dataset. 'access' is one of: ultralytics (Ultralytics downloads it), huggingface (zip in the team's Hugging Face dataset repo), url (direct link), manual (a person must download it). Fill in downloadUrl or huggingFaceRepo, zipName and sha256 once the processed zip exists; common/datasets.py refuses to continue on a checksum mismatch and prints the real checksum when none is recorded. Optional fields: downloadFiles (name, url, sha256 for a dataset delivered as several zips; used with access 'url' and extractFolder), sourceYoloClassIds (class numbers inside the downloaded YOLO files, when they differ from classNames), unofficialMirror (a third-party copy that was checked). 'zipName' and 'sha256' always describe the zip that the notebook or script checks. Never put tokens or Google Drive links with edit access in this file. Licence text is a practical reading of the published terms (plans/00-main-plan.md section 4), not legal advice.",
   "datasets": [
     {
       "name": "brackish",
@@ -11,12 +11,13 @@
       "license": "CC BY 4.0 on the Roboflow mirror (confirm at vap.aau.dk before mirroring)",
       "redistribution": "May be mirrored with attribution once the licence is confirmed",
       "access": "manual",
-      "instructions": "Download the YOLO-format export from the Roboflow mirror (needs a free Roboflow login) or from the AAU page, zip it as brackish.zip with the folders images/ and labels/ at the top level, upload it to the team's Hugging Face dataset repo, then fill in huggingFaceRepo, zipName and sha256 here. Check that near-identical frames from one video do not sit on both sides of the split (common/datasets.py findCrossSplitDuplicates).",
+      "instructions": "Fastest route: python -m underwater.prepareBrackish --output underwater/dataset (downloads the CC BY 4.0 Hugging Face copy named in unofficialMirror, about 0.7 GB, renames the Roboflow folders and writes dataset.yaml). By hand: download the YOLO-format export from the Roboflow mirror (needs a free Roboflow login) or the AAU page and zip it as brackish.zip with ONE top-level folder named brackish/ that holds images/ and labels/ (or Roboflow's train/, valid/ and test/); the notebooks extract the zip into /content/datasets and read /content/datasets/brackish. Upload the zip to the top of Google Drive, or to the team's Hugging Face dataset repo and then fill in huggingFaceRepo and sha256 here (the checksum is of that zip). Check that near-identical frames from one video do not sit on both sides of the split (common/datasets.py findCrossSplitDuplicates).",
+      "unofficialMirror": {"huggingFaceRepo": "dronefreak/Brackish", "license": "cc-by-4.0", "note": "Unofficial copy of the Roboflow export (checked 2026-10-17: 712 MB, YOLO format with train/valid/test); attribute Pedersen et al., Aalborg University"},
       "downloadUrl": null,
       "huggingFaceRepo": null,
       "zipName": "brackish.zip",
       "sha256": null,
-      "conversionScript": "common/datasets.py (label checks); the Roboflow export is already YOLO format"
+      "conversionScript": "underwater/prepareBrackish.py (download and layout); common/datasets.py (label checks)"
     },
     {
       "name": "urpc",
@@ -60,13 +61,21 @@
       "classNames": ["car", "bus", "truck", "person", "motorcycle", "bicycle"],
       "weatherTypes": ["fog", "rain", "snow", "sand"],
       "source": "Mendeley Data (DAWN, Kenk and Hassaballah)",
-      "license": "All rights reserved; commercial use and distribution prohibited; images came from web searches",
+      "license": "Mendeley Data lists CC BY-NC 3.0 (attribution, non-commercial) in its licence field, but the dataset description says all rights are reserved and commercial use and distribution are prohibited; images came from web searches. Read it as the stricter of the two (checked 2026-10-17)",
       "redistribution": "Educational use only; no public mirror, keep processed copies private",
-      "access": "manual",
-      "instructions": "Download DAWN from its Mendeley Data page, keep the four weather folders, and run weather/prepareDawn.py to convert to YOLO format and write the stratified 5-fold lists. Verify the class order in the supplied YOLO files first; classNames here follows the plan and must match them.",
+      "access": "url",
+      "instructions": "python -m weather.prepareDawn --download-to weather/dataset --output weather/dataset/dawn downloads the four zips from Mendeley Data (139 MB, checksums below are the ones Mendeley publishes), unzips them into weather/dataset/dawn_raw/, converts them to YOLO format and writes the stratified 5-fold lists. The notebook does the same on Colab, so nothing needs to be uploaded to Drive. The YOLO files of the download number their classes like COCO counting from 1, so sourceYoloClassIds renumbers them by class name; the one 'train' box is dropped. Cite Kenk and Hassaballah, DAWN (arXiv 2008.05402).",
       "downloadUrl": null,
+      "downloadFiles": [
+        {"name": "Fog.zip", "url": "https://data.mendeley.com/public-files/datasets/766ygrbt8y/files/c286e791-88c9-4bec-b43d-2ed276dd11ba/file_downloaded", "sha256": "09f4f8987e030b8da9e76eb73ab00b64fb628cd43df42e460bc26b9a0912c7c2"},
+        {"name": "Rain.zip", "url": "https://data.mendeley.com/public-files/datasets/766ygrbt8y/files/7b37087a-db6b-4ce9-8ec4-ee64f963f073/file_downloaded", "sha256": "005bff2cc6c4dad1d4da76d58a50d2a6e071194b3583c28a4d1c8f90a972b76c"},
+        {"name": "Sand.zip", "url": "https://data.mendeley.com/public-files/datasets/766ygrbt8y/files/51071d4d-5505-4e0e-acf7-495bc3606b02/file_downloaded", "sha256": "19dff0e43f7d7e00b9c3768c39245f3164b9a8a8c5a92274252c9449d92ab81c"},
+        {"name": "Snow.zip", "url": "https://data.mendeley.com/public-files/datasets/766ygrbt8y/files/d5abcff0-484f-49c9-b9f7-bf36c3b325a2/file_downloaded", "sha256": "9cf3ccbef87e2ae4055d87a9b4a9e24010f6ef2951a84ced6bd30b04820b3f6f"}
+      ],
+      "extractFolder": "dawn_raw",
+      "sourceYoloClassIds": {"1": "person", "2": "bicycle", "3": "car", "4": "motorcycle", "6": "bus", "7": "train", "8": "truck"},
       "huggingFaceRepo": null,
-      "zipName": "dawn.zip",
+      "zipName": null,
       "sha256": null,
       "conversionScript": "weather/prepareDawn.py"
     },
@@ -77,11 +86,11 @@
       "description": "VisDrone2019-DET: 6,471 train, 548 val, 1,610 test-dev images, 10 classes, large drone images",
       "classNames": ["pedestrian", "people", "bicycle", "car", "van", "truck", "tricycle", "awning-tricycle", "bus", "motor"],
       "source": "AISKYEYE, Tianjin University; Zhu et al., TPAMI 2021",
-      "license": "Copyright AISKYEYE; secondary sources describe CC BY-NC-SA 3.0 (official licence text not retrieved; confirm in the official VisDrone GitHub repo)",
+      "license": "Copyright AISKYEYE. Still unconfirmed: the official VisDrone-Dataset GitHub repo has no LICENSE file and its README states no licence (checked 2026-10-17); secondary sources describe CC BY-NC-SA 3.0. Ask AISKYEYE or the supervisor before sharing anything derived from it",
       "redistribution": "Do not republish; attribute Zhu et al., TPAMI 2021",
       "access": "ultralytics",
       "ultralyticsYaml": "VisDrone.yaml",
-      "instructions": "Nothing to download by hand: training with data='VisDrone.yaml' downloads about 2 GB and converts it. Allow about 4 GB of free disk space.",
+      "instructions": "Nothing to download by hand: training with data='VisDrone.yaml' downloads about 2 GB and converts it (train 1.44 GB, val 0.07 GB, test-dev 0.28 GB per the official README, so it is above the 1 GB limit for a copy kept in the repository folders). Allow about 4 GB of free disk space.",
       "downloadUrl": null,
       "huggingFaceRepo": null,
       "zipName": null,
@@ -100,7 +109,7 @@
       "instructions": "Download from the authors' release page, keep Train/Test image and GT folders, and confirm the file naming pattern that encodes the super-class (needed for the per-category analysis).",
       "downloadUrl": null,
       "huggingFaceRepo": null,
-      "zipName": "cod10k.zip",
+      "zipName": null,
       "sha256": null,
       "conversionScript": "camoedge/dataset.py"
     },
@@ -116,7 +125,7 @@
       "instructions": "Download from the authors' release page and keep the Train and Test folders with images and ground-truth masks.",
       "downloadUrl": null,
       "huggingFaceRepo": null,
-      "zipName": "camo.zip",
+      "zipName": null,
       "sha256": null,
       "conversionScript": "camoedge/dataset.py"
     },
@@ -132,7 +141,23 @@
       "instructions": "Optional extra test set; download from the authors' release page.",
       "downloadUrl": null,
       "huggingFaceRepo": null,
-      "zipName": "nc4k.zip",
+      "zipName": null,
+      "sha256": null,
+      "conversionScript": "camoedge/dataset.py"
+    },
+    {
+      "name": "camoedge",
+      "plan": "D",
+      "task": "camoedge",
+      "description": "The arranged dataset that Plan D trains and tests on: COD10K-Tr + CAMO-Tr merged into TrainDataset (4,040 pairs) and the test sets under TestDataset/COD10K, CAMO and optionally NC4K. This zip is what camoedge_colab.ipynb checks; the entries cod10k, camo and nc4k describe the authors' own releases",
+      "source": "Built by the team from the cod10k, camo and nc4k releases",
+      "license": "Follows the strictest of cod10k, camo and nc4k; research use only",
+      "redistribution": "No mirror; keep the zip on a private Drive or private Hugging Face repo",
+      "access": "manual",
+      "instructions": "Download COD10K and CAMO from the authors' pages (NC4K is optional) and build one folder named camo/ with TrainDataset/Imgs and TrainDataset/GT (COD10K-Tr and CAMO-Tr together, 4,040 image and mask pairs with equal file stems) and TestDataset/<COD10K|CAMO|NC4K>/Imgs and GT. Zip it as camo.zip with camo/ as the single top-level folder, upload it to the top of Google Drive and record its SHA-256 here. Not downloaded into the repository folders: COD10K alone is about 1.5 GB on the unofficial Hugging Face copy, above the 1 GB limit the team set (CAMO alone is 0.2 GB but Plan D needs both).",
+      "downloadUrl": null,
+      "huggingFaceRepo": null,
+      "zipName": "camo.zip",
       "sha256": null,
       "conversionScript": "camoedge/dataset.py"
     }

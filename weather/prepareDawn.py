@@ -1,6 +1,9 @@
 # Convert DAWN to a YOLO-format dataset and write stratified 5-fold lists (plans/02-weather-distill.md, "Splits").
 # DAWN is educational-use only: keep the processed copy private and never publish it.
-#   python -m weather.prepareDawn --source /content/DAWN_raw --output /content/datasets/dawn
+#   python -m weather.prepareDawn --source /content/datasets/dawn_raw --output /content/datasets/dawn
+#   python -m weather.prepareDawn --download-to weather/dataset --output weather/dataset/dawn     (downloads the four zips from Mendeley Data first)
+# The YOLO files of the download number their classes like COCO counting from 1, not in the order of the manifest, so the numbers are
+# renumbered by class name (sourceYoloClassIds in datasets/manifest.json). The single "train" box of the whole dataset is dropped.
 # Layout produced:  <output>/images/<weather>/<image>   <output>/labels/<weather>/<image>.txt
 # Fold lists are committed under common/splits/dawn/ (paths relative to the dataset root, so they work on every machine).
 # Near-duplicate images (perceptual hash) are kept together in one fold, so a copy of a training image can never sit in validation.
@@ -9,7 +12,7 @@ import json
 import shutil
 from pathlib import Path
 
-from common.datasets import (convertVocFile, defaultHashDistance, findNearDuplicateGroups, getManifestEntry, imageSuffixes,
+from common.datasets import (convertVocFile, defaultHashDistance, fetchDataset, findNearDuplicateGroups, getManifestEntry, imageSuffixes,
                              makeStratifiedFolds, readSplitFile, splitsFolder, writeAbsoluteImageList, writeDatasetYaml, writeSplitFile)
 
 # Number of cross-validation folds
@@ -24,6 +27,12 @@ dawnSplitsFolder = splitsFolder / "dawn"
 def getDawnSettings():
     entry = getManifestEntry("dawn")
     return entry["weatherTypes"], entry["classNames"]
+
+
+# Class numbers used inside the YOLO files of the DAWN download, as a dict from number to class name (from the manifest)
+# The download does not use the order of classNames: it numbers classes like COCO, counting from 1 (1 person, 3 car, 8 truck, ...)
+def getDawnSourceClassIds():
+    return {int(classId): className for classId, className in getManifestEntry("dawn")["sourceYoloClassIds"].items()}
 
 
 # Folders of one weather type below the raw DAWN folder; folder names are matched case-insensitively ("Fog", "fog", "Foggy")
@@ -48,11 +57,29 @@ def indexAnnotations(folders, suffix):
     return index
 
 
+# Rewrite one YOLO label file so that its class numbers follow classNumbers; sourceClassIds maps the numbers in the file to class names
+# Boxes whose number is unknown or whose class is not in classNumbers are dropped and counted in droppedClasses
+def remapYoloLabelFile(sourceLabel, targetLabel, sourceClassIds, classNumbers, droppedClasses):
+    lines = []
+    for line in Path(sourceLabel).read_text(encoding="utf-8").splitlines():
+        fields = line.split()
+        if not fields: continue
+        className = sourceClassIds.get(int(fields[0]))
+        if className not in classNumbers:
+            droppedName = className or f"class number {fields[0]}"
+            droppedClasses[droppedName] = droppedClasses.get(droppedName, 0) + 1
+            continue
+        lines.append(" ".join([str(classNumbers[className]), *fields[1:]]))
+    Path(targetLabel).write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+
+
 # Copy images and labels of every weather type into <output>/images/<weather> and <output>/labels/<weather>
-# YOLO txt files are copied as they are; if only a Pascal VOC XML exists for an image, it is converted. Images without any
-# annotation file are reported and still copied with an empty label file (they count as background images).
-def convertDawn(sourceRoot, outputRoot, weatherTypes, classNames):
+# YOLO txt files are renumbered through sourceClassIds: "manifest" (the default) uses the table of the real DAWN download, a dict gives
+# another table, and None copies the numbers unchanged. If only a Pascal VOC XML exists for an image, it is converted by class name.
+# Images without any annotation file are reported and still copied with an empty label file (they count as background images).
+def convertDawn(sourceRoot, outputRoot, weatherTypes, classNames, sourceClassIds="manifest"):
     outputRoot = Path(outputRoot)
+    if sourceClassIds == "manifest": sourceClassIds = getDawnSourceClassIds()
     imagesByWeather = collectWeatherImages(sourceRoot, weatherTypes)
     classNumbers = {className: number for number, className in enumerate(classNames)}
     unknownClasses, missingAnnotations = {}, []
@@ -66,13 +93,14 @@ def convertDawn(sourceRoot, outputRoot, weatherTypes, classNames):
             targetImage.parent.mkdir(parents=True, exist_ok=True)
             targetLabel.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(imagePath, targetImage)
-            if imagePath.stem in yoloIndex: shutil.copy2(yoloIndex[imagePath.stem], targetLabel)
+            if imagePath.stem in yoloIndex and sourceClassIds is None: shutil.copy2(yoloIndex[imagePath.stem], targetLabel)
+            elif imagePath.stem in yoloIndex: remapYoloLabelFile(yoloIndex[imagePath.stem], targetLabel, sourceClassIds, classNumbers, unknownClasses)
             elif imagePath.stem in xmlIndex: convertVocFile(xmlIndex[imagePath.stem], targetLabel, classNumbers, unknownClasses)
             else:
                 missingAnnotations.append(imagePath.name)
                 targetLabel.write_text("", encoding="utf-8")
     if missingAnnotations: print(f"WARNING: {len(missingAnnotations)} images have no annotation file, for example {missingAnnotations[:3]}")
-    if unknownClasses: print(f"WARNING: XML files contained classes that are not in classNames: {unknownClasses}")
+    if unknownClasses: print(f"WARNING: boxes of classes that are not in classNames were dropped: {unknownClasses}")
     return {weatherType: sorted((outputRoot / "images" / weatherType).glob("*")) for weatherType in weatherTypes}
 
 
@@ -133,9 +161,12 @@ def heldOutImagesByWeather(datasetRoot, foldIndex, weatherTypes, folder=dawnSpli
 # Command line entry point: convert the raw download, write fold lists and per-fold YAML files
 def main():
     parser = argparse.ArgumentParser(description="Prepare DAWN: convert to YOLO format and write 5-fold lists")
-    parser.add_argument("--source", required=True, help="folder with the raw DAWN weather folders")
+    parser.add_argument("--source", help="folder with the raw DAWN weather folders")
+    parser.add_argument("--download-to", help="download and verify the raw DAWN zips from Mendeley Data into this folder (creates dawn_raw/ in it)")
     parser.add_argument("--output", required=True, help="folder for the YOLO-format copy (keep it private)")
     arguments = parser.parse_args()
+    if arguments.download_to: arguments.source = fetchDataset("dawn", arguments.download_to)
+    if not arguments.source: parser.error("give --source or --download-to")
     weatherTypes, classNames = getDawnSettings()
     imagesByWeather = convertDawn(arguments.source, arguments.output, weatherTypes, classNames)
     print("Boxes per class id (verify against the class order in plans/02-weather-distill.md):", json.dumps(countClassIds(arguments.output)))

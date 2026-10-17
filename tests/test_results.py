@@ -1,5 +1,5 @@
 # Tests for the results log and the summary table (common/results.py, common/summariseResults.py)
-from common.results import appendResultRow, buildResultRow, readResultRows
+from common.results import appendResultRow, buildResultRow, logSpeedRow, readResultRows
 from common.summariseResults import renderMarkdown, summariseRows
 
 
@@ -50,3 +50,14 @@ def testSummaryHasOneTablePerTask():
     underwaterTable, camoedgeTable = markdownText.split("## underwater")[1], markdownText.split("## underwater")[0]
     assert "sAlpha" in camoedgeTable and "map50" not in camoedgeTable
     assert "map50" in underwaterTable and "sAlpha" not in underwaterTable and "2,390,950" in underwaterTable
+
+
+# Logging the speed of a run twice keeps one row, so re-running a notebook cell does not add extra values to the summary; text values are not stored
+def testSpeedRowIsLoggedOnce(tmp_path):
+    speedMetrics = {"fps": 120.5, "latencyMs": 8.3, "gpuName": "Tesla T4"}
+    firstRow = logSpeedRow("underwater", "yolo26n", "eca-a", 0, speedMetrics, tmp_path)
+    secondRow = logSpeedRow("underwater", "yolo26n", "eca-a", 0, speedMetrics, tmp_path)
+    logSpeedRow("underwater", "yolo26n", "eca-a", 1, speedMetrics, tmp_path)
+    rows = readResultRows(tmp_path / "underwater.csv")
+    assert len(rows) == 2 and float(secondRow["fps"]) == float(firstRow["fps"]) == 120.5 and "gpuName" not in rows[0]
+    assert rows[0]["notes"] == "speed protocol"

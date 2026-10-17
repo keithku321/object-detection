@@ -9,6 +9,8 @@
 #   dysample   DySample instead of nearest-neighbour upsampling in the neck (S3)
 #   wfusion    learnable weighted fusion instead of plain concatenation in the neck (S4)
 #   nwd        NWD box loss (S5); alone it applies to the baseline architecture
+# A variant with nwd needs the NWD constant C, the typical object size of the training labels: it is computed from the labels
+# before training unless --nwd-constant gives it (the notebook does the same in its data check cell).
 # Always read the log line "Transferred N/M items from pretrained weights": the P2 head and every new layer start untrained.
 import argparse
 from pathlib import Path
@@ -17,8 +19,8 @@ from common.benchmark import countParametersAndGflops
 from common.registerModules import attentionBlocks, findConcatLayers, loadBaseYaml, makeLayerMapTrainer, registerCustomModules, writeVariantYaml
 from common.results import appendResultRow, buildResultRow, findResultRow
 from common.training import copyFinalWeights, defaultBatchSize, endToEndNote, makeRunName, protocolImageSize, trainDetector
-from smallobject.evalCoco import cocoMaximumDetections, evaluateSmallObjects
-from smallobject.nwdLoss import defaultNwdConstant, defaultNwdWeight, makeNwdTrainer
+from smallobject.evalCoco import cocoMaximumDetections, evaluateSmallObjects, resolveSplitImages
+from smallobject.nwdLoss import computeNwdConstant, defaultNwdConstant, defaultNwdWeight, makeNwdTrainer
 
 # Name of this task in the results log and in weight file names
 taskName = "smallobject"
@@ -106,7 +108,7 @@ def main():
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--eval-split", default="val", choices=["val", "test"])
     parser.add_argument("--nwd-weight", type=float, default=defaultNwdWeight)
-    parser.add_argument("--nwd-constant", type=float, default=defaultNwdConstant)
+    parser.add_argument("--nwd-constant", type=float, default=None, help="NWD constant C in pixels; computed from the training labels when omitted")
     parser.add_argument("--write-config", action="store_true", help="write the variant's model YAML and exit")
     arguments = parser.parse_args()
     if arguments.write_config:
@@ -114,8 +116,12 @@ def main():
         print(resolveVariant(arguments.variant, arguments.scale)["modelSource"])
         return
     if not arguments.project: parser.error("--project is required for training")
+    nwdConstant = arguments.nwd_constant
+    if nwdConstant is None and "nwd" in parseVariant(arguments.variant):
+        nwdConstant = computeNwdConstant(resolveSplitImages(arguments.data, "train")[0], arguments.imgsz)
+        print(f"NWD constant computed from the training labels: {nwdConstant:.2f} px")
     runVariant(arguments.variant, arguments.seed, arguments.epochs, arguments.project, arguments.data, arguments.scale, arguments.imgsz, arguments.batch,
-               arguments.device, arguments.workers, arguments.eval_split, arguments.nwd_weight, arguments.nwd_constant)
+               arguments.device, arguments.workers, arguments.eval_split, arguments.nwd_weight, nwdConstant or defaultNwdConstant)
 
 
 if __name__ == "__main__":

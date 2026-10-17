@@ -109,6 +109,20 @@ def findResultRow(task, model, variant, seed, notesContain="", folder=resultsFol
     return None
 
 
+# Text in the notes of a speed row; a re-run finds the row that is already there by this text
+speedNote = "speed protocol"
+
+
+# Log the outcome of the speed protocol (common/benchmark.py) as one row; a run that already has a speed row is not logged twice
+# Only numbers are kept, because the benchmark also returns text such as the GPU name. Returns the new row or the existing one
+def logSpeedRow(task, model, variant, seed, speedMetrics, folder=resultsFolder):
+    existingRow = findResultRow(task, model, variant, seed, speedNote, folder)
+    if existingRow: return existingRow
+    row = buildResultRow(task, model, variant, seed, {key: value for key, value in speedMetrics.items() if isinstance(value, (int, float))}, notes=speedNote)
+    appendResultRow(row, folder)
+    return row
+
+
 # Merge two copies of a task's results file (the repository copy and a copy on Google Drive) so that neither loses rows
 # A fresh Colab clone only has the committed rows, so call this at the start of a session and after every run. Both files end up equal.
 def syncResultFiles(task, otherFolder, folder=resultsFolder):

@@ -108,3 +108,25 @@ def testNearDuplicateGroups(tmp_path):
     assert len(groups) == 1 and sorted(groups[0]) == sorted([paths["first"], paths["copy"]])
     crossSplit = datasets.findCrossSplitDuplicates({"train": [paths["first"], paths["other"]], "val": [paths["copy"]]})
     assert len(crossSplit) == 1
+
+
+# A dataset delivered as several zips is downloaded, verified against each checksum and unzipped into the entry's extract folder
+def testFetchDatasetWithSeveralZips(tmp_path):
+    import json
+    import zipfile
+    fileEntries = []
+    for weatherName in ("Fog", "Rain"):
+        zipPath = tmp_path / "source" / f"{weatherName}.zip"
+        zipPath.parent.mkdir(exist_ok=True)
+        with zipfile.ZipFile(zipPath, "w") as archive: archive.writestr(f"{weatherName}/{weatherName}-1.jpg", b"image")
+        fileEntries.append({"name": zipPath.name, "url": zipPath.as_uri(), "sha256": datasets.computeSha256(zipPath)})
+    manifestFile = tmp_path / "manifest.json"
+    manifestFile.write_text(json.dumps({"datasets": [{"name": "demo", "access": "url", "downloadFiles": fileEntries, "extractFolder": "demo_raw"}]}), encoding="utf-8")
+    extractedFolder = datasets.fetchDataset("demo", tmp_path / "target", path=manifestFile)
+    assert extractedFolder == tmp_path / "target" / "demo_raw"
+    assert (extractedFolder / "Fog" / "Fog-1.jpg").read_bytes() == b"image" and (extractedFolder / "Rain" / "Rain-1.jpg").exists()
+    fileEntries[0]["sha256"] = "0" * 64
+    manifestFile.write_text(json.dumps({"datasets": [{"name": "demo", "access": "url", "downloadFiles": fileEntries, "extractFolder": "demo_raw"}]}), encoding="utf-8")
+    (tmp_path / "target" / "downloads" / "Fog.zip").unlink()
+    with pytest.raises(ValueError): datasets.fetchDataset("demo", tmp_path / "target", path=manifestFile)
+

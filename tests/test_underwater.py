@@ -2,10 +2,11 @@
 import pytest
 
 numpy = pytest.importorskip("numpy")
-pytest.importorskip("cv2")
+cv2 = pytest.importorskip("cv2")
 
 from underwater.degrade import buildDegradedTestSets, degradeImage, severityLevels  # noqa: E402
 from underwater.enhance import enhanceDataset, enhanceImage, greyWorldWhiteBalance  # noqa: E402
+from underwater.prepareBrackish import arrangeDataset  # noqa: E402
 
 
 # A blue-green image with a weak red channel, like an underwater photograph
@@ -53,3 +54,32 @@ def testDegradedSetsKeepLabels(tmp_path):
         assert (tmp_path / "degraded" / f"severity{severity}" / "labels" / "test" / "frame.txt").read_text(encoding="utf-8").startswith("0 0.5")
     enhancedRoot = enhanceDataset(tmp_path / "data", tmp_path / "enhanced")
     assert (enhancedRoot / "images" / "test" / "frame.png").exists() and (enhancedRoot / "labels" / "test" / "frame.txt").exists()
+
+
+# Build a tiny Roboflow export (train/, valid/ and test/ with images/ and labels/, plus data.yaml) with the given class names
+def makeRoboflowExport(exportFolder, classNames):
+    for roboflowName in ("train", "valid", "test"):
+        (exportFolder / roboflowName / "images").mkdir(parents=True)
+        (exportFolder / roboflowName / "labels").mkdir(parents=True)
+        cv2.imwrite(str(exportFolder / roboflowName / "images" / "frame.jpg"), numpy.zeros((16, 16, 3), dtype=numpy.uint8))
+        (exportFolder / roboflowName / "labels" / "frame.txt").write_text("1 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+    (exportFolder / "data.yaml").write_text(f"nc: {len(classNames)}\nnames: {list(classNames)}\n", encoding="utf-8")
+
+
+# The Roboflow folders are renamed to images/<split> and labels/<split> and dataset.yaml lists the test split
+def testBrackishExportIsArranged(tmp_path):
+    classNames = ["crab", "fish", "jellyfish", "shrimp", "small_fish", "starfish"]
+    makeRoboflowExport(tmp_path / "export", classNames)
+    yamlPath = arrangeDataset(tmp_path / "export", tmp_path / "out", classNames)
+    datasetRoot = tmp_path / "out" / "brackish"
+    assert yamlPath == datasetRoot / "dataset.yaml" and "images/test" in yamlPath.read_text(encoding="utf-8")
+    for splitName in ("train", "val", "test"):
+        assert (datasetRoot / "images" / splitName / "frame.jpg").exists() and (datasetRoot / "labels" / splitName / "frame.txt").exists()
+
+
+# A different class order in the download is refused, because it would mislabel every box
+def testBrackishClassOrderMismatchIsRefused(tmp_path):
+    makeRoboflowExport(tmp_path / "export", ["fish", "crab", "jellyfish", "shrimp", "small_fish", "starfish"])
+    with pytest.raises(ValueError):
+        arrangeDataset(tmp_path / "export", tmp_path / "out", ["crab", "fish", "jellyfish", "shrimp", "small_fish", "starfish"])
+

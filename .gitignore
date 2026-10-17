@@ -1,6 +1,8 @@
 # Datasets and training outputs (kept on Drive); only the dataset manifest is tracked
 datasets/*
 !datasets/manifest.json
+# Downloaded or prepared data inside a plan folder (underwater/dataset/, weather/dataset/, ...); the trailing slash leaves camoedge/dataset.py alone
+/*/dataset/
 runs/
 *.pt
 *.onnx

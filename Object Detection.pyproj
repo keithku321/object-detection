@@ -37,6 +37,7 @@
     <Compile Include="underwater\degrade.py" />
     <Compile Include="underwater\demoTab.py" />
     <Compile Include="underwater\enhance.py" />
+    <Compile Include="underwater\prepareBrackish.py" />
     <Compile Include="underwater\train.py" />
     <Compile Include="weather\__init__.py" />
     <Compile Include="weather\demoTab.py" />
