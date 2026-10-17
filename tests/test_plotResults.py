@@ -7,8 +7,15 @@ import pytest
 
 pytest.importorskip("matplotlib")
 
+import common.plotResults as plotResults  # noqa: E402
 from common.plotResults import (extractPerClassScores, extractRowMetrics, makePlotFileName, plotCamoEdgeRun, plotDetectionRun,  # noqa: E402
                                 plotGroupedMetrics, readEpochHistory, trySavePlot)
+
+# Every test saves its plots into a temporary folder instead of the real results/plots folder
+@pytest.fixture(autouse=True)
+def redirectPlots(tmp_path, monkeypatch):
+    monkeypatch.setattr(plotResults, "defaultPlotsFolder", tmp_path / "saved-plots")
+
 
 # Header of the results.csv that Ultralytics 8.4.175 writes for YOLO26 (Ultralytics pads some names with spaces)
 ultralyticsHeader = ("epoch,time,train/box_loss,train/cls_loss,train/l1_loss,metrics/precision(B),metrics/recall(B),metrics/mAP50(B),metrics/mAP50-95(B),"
@@ -42,15 +49,25 @@ def testReadEpochHistory(tmp_path):
     assert readEpochHistory(tmp_path / "missing") == {}
 
 
-# A detection run is drawn for one epoch and for many, with and without final metrics, and the PNG lands in plots/ of the run folder
+# A detection run is drawn for one epoch and for many, with and without final metrics; the PNG lands in <plots folder>/<task>/ and the run's
+# normalised confusion matrix is copied next to it under a matching name
 @pytest.mark.parametrize("epochCount", [1, 5])
 def testPlotDetectionRun(tmp_path, epochCount):
     runFolder = makeRunFolder(tmp_path, epochCount)
+    (runFolder / "confusion_matrix_normalized.png").write_bytes(b"png")
     perClass = {"crab": {"mAP50": 0.1, "mAP50-95": 0.05, "instances": 1226}, "fish": {"mAP50": 0.6, "mAP50-95": 0.3, "instances": 325}}
     plotPath = plotDetectionRun(runFolder, "underwater", runFolder.name, {"map50": 0.47, "map50_95": 0.24, "parameters": 2390950.0}, perClass, "split=val")
-    assert plotPath.parent == runFolder / "plots" and plotPath.stat().st_size > 10_000
+    assert plotPath.parent == tmp_path / "saved-plots" / "underwater" and plotPath.stat().st_size > 10_000
+    assert not (runFolder / "plots").exists()
+    assert (plotPath.parent / plotPath.name.replace("training-results", "confusion-matrix-normalised")).read_bytes() == b"png"
     assert plotDetectionRun(runFolder, "underwater", runFolder.name, {"apSmall": 0.1, "apMedium": 0.3, "apLarge": 0.5}) is not None
     assert plotDetectionRun(runFolder, "underwater", runFolder.name) is not None
+
+
+# The default plots folder is results/plots in the repository, which is tracked by git
+def testDefaultPlotsFolderIsInsideResults(monkeypatch):
+    monkeypatch.undo()
+    assert plotResults.defaultPlotsFolder.parts[-2:] == ("results", "plots")
 
 
 # A folder without results.csv gives no plot instead of an error
@@ -61,16 +78,16 @@ def testNoResultsFileGivesNone(tmp_path):
 # The by-group plot (weather types) is drawn, and an empty result gives None
 def testPlotGroupedMetrics(tmp_path):
     metrics = {"fog": {"map50": 0.4, "map50_95": 0.2, "precision": 0.5, "recall": 0.4, "images": 200}, "snow": {"map50": 0.3, "map50_95": 0.1, "precision": 0.4, "recall": 0.3, "images": 150}}
-    plotPath = plotGroupedMetrics(tmp_path, "weather", "student-fold0-seed0", "by-weather", metrics, groupTitle="weather")
-    assert plotPath.name.startswith("weather_student-fold0-seed0_by-weather_") and plotPath.exists()
-    assert plotGroupedMetrics(tmp_path, "weather", "student", "by-weather", {}) is None
+    plotPath = plotGroupedMetrics("weather", "student-fold0-seed0", "by-weather", metrics, groupTitle="weather")
+    assert plotPath.parent.name == "weather" and plotPath.name.startswith("weather_student-fold0-seed0_by-weather_") and plotPath.exists()
+    assert plotGroupedMetrics("weather", "student", "by-weather", {}) is None
 
 
 # A CamoEdge run is drawn before and after evaluation
 def testPlotCamoEdgeRun(tmp_path):
     history = [{"epoch": epoch, "loss": 1.0 / epoch, "maskLoss": 0.6 / epoch, "edgeLoss": 0.4 / epoch, "seconds": 30.0} for epoch in (1, 2, 3)]
     settings = {"variantName": "E5", "seed": 0, "encoderName": "pvt_v2_b2", "epochs": 3, "batchSize": 16, "imageSize": 352, "learningRate": 1e-4}
-    assert plotCamoEdgeRun(tmp_path, history, settings, [1e-4, 7e-5, 3e-5]).exists()
+    assert plotCamoEdgeRun(tmp_path, history, settings, [1e-4, 7e-5, 3e-5]).parent == tmp_path / "saved-plots" / "camoedge"
     testMetrics = {"CAMO": {"sAlpha": 0.7, "eMean": 0.8, "eMax": 0.85, "fWeighted": 0.6, "mae": 0.08, "boundaryF": 0.5, "images": 250}}
     categoryMetrics = {"Aquatic": {"sAlpha": 0.7, "boundaryF": 0.5}, "Flying": {"sAlpha": 0.8, "boundaryF": 0.6}}
     assert plotCamoEdgeRun(tmp_path, history, settings, [1e-4, 7e-5, 3e-5], testMetrics, categoryMetrics, "subset=100").exists()

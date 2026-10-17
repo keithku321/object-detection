@@ -6,8 +6,8 @@ Copy-paste commands for this repository. Run everything from the repository root
 Contents: [Setup](#setup) · [Datasets](#datasets) · [Train](#train-locally) · [Results and plots](#results-and-plots) · [Evaluate and export](#evaluate-speed-and-export) · [Demo](#demo) · [Tests](#tests) · [Troubleshooting](#troubleshooting)
 
 Conventions used below:
-- `--project runs` puts all runs in `runs/` (git-ignored). A run folder is `runs/<task>/<run name>/`, with `weights/`, Ultralytics' own charts and `results.csv`, and the
-  **results plot in `plots/`** (see [Results and plots](#results-and-plots)).
+- `--project runs` puts all runs in `runs/` (git-ignored). A run folder is `runs/<task>/<run name>/`, with `weights/`, Ultralytics' own charts and `results.csv`. The
+  **results plot is saved straight into the tracked folder `results/plots/<task>/`**, so it can go into a pull request (see [Results and plots](#results-and-plots)).
 - Re-running the same training command **resumes** an unfinished run and **skips** a finished one. Use `--label` (Plans A) or a new `--seed` to start a separate run.
 - Every finished run appends a row to `results/<task>.csv`. A short trial run goes into the same file, so give trials a `--label` or delete the row afterwards.
 - Defaults: image size 640, batch 16, 2 dataloader workers on Windows, YOLO26 `n` scale. Add `--workers 0` if the dataloader hangs, `--batch 8` on out-of-memory.
@@ -260,10 +260,13 @@ python -m camoedge.train --experiment E1 --epochs 30 --skip-evaluation --dataset
 
 ## Results and plots
 
-Every training command saves a detailed Matplotlib figure to `<run folder>/plots/<task>_<run>_<plot kind>_<YYYY-MM-DD_HH-MM-SS>.png`, for example
-`runs/underwater/baseline-seed0/plots/underwater_baseline-seed0_training-results_2026-10-17_23-40-12.png`. It shows box, class and other losses (training solid, validation
-dashed), validation mAP with the best epoch marked, precision and recall, the learning rate, per-class scores (or COCO AP by object size for Plan C), and a text summary of the
-run. Plan B also saves `..._by-weather_...png`; Plan D shows test-set scores, MAE and per-super-class scores. A plotting problem prints a warning and never stops a run.
+Every training command saves a detailed Matplotlib figure to `results/plots/<task>/<task>_<run>_<plot kind>_<YYYY-MM-DD_HH-MM-SS>.png`, for example
+`results/plots/underwater/underwater_baseline-seed0_training-results_2026-10-18_01-55-03.png`. This folder is tracked by git (it is not ignored), so nothing has to be copied
+by hand before a commit. For a detection run (Plans A, B and C) Ultralytics' normalised confusion matrix is copied next to it as `..._confusion-matrix-normalised_...png`.
+The plot shows box, class and other losses (training solid, validation dashed), validation mAP with the best epoch marked, precision and recall, the learning rate, per-class
+scores (or COCO AP by object size for Plan C), and a text summary of the run. Plan B also saves `..._by-weather_...png`; Plan D shows test-set scores, MAE and per-super-class
+scores. A plotting problem prints a warning and never stops a run. Every re-run or redraw adds a new file with a new date and time: delete the older ones you do not want
+to commit. On Colab the folder is inside the cloned repository, so copy `results/plots/` to Drive before the session ends, as for `results/*.csv`.
 
 Redraw the plot of a finished detection run (training curves from its `results.csv`; per-class bars need the evaluation, which runs inside the training command):
 
@@ -277,20 +280,10 @@ Redraw the plot of a CamoEdge run:
 python -m common.plotResults --task camoedge --checkpoint runs/camoedge/E1-seed0/last.pt
 ```
 
-Save the PNG somewhere else:
+Save the PNG somewhere else instead of `results/plots/<task>/`:
 
 ```powershell
 python -m common.plotResults --task underwater --run runs/underwater/baseline-seed0 --output plots
-```
-
-Copy the plots of a run into the tracked folder `results/plots/<task>/` so they can go into a pull request (`runs/` is git-ignored). Copy only the training-results plot and the normalised confusion matrix, and run both lines:
-
-```powershell
-New-Item -ItemType Directory -Force results/plots/underwater | Out-Null; Copy-Item runs/underwater/baseline-seed0/plots/*training-results*.png results/plots/underwater/
-```
-
-```powershell
-Copy-Item runs/underwater/baseline-seed0/confusion_matrix_normalized.png ("results/plots/underwater/underwater_baseline-seed0_confusion-matrix-normalised_" + (Get-Date -Format "yyyy-MM-dd_HH-mm-ss") + ".png")
 ```
 
 Summary table of all results (mean ± std over seeds) as markdown:
