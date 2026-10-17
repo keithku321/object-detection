@@ -75,3 +75,17 @@ def testVariantNamesAreChecked():
     for badName in ("p3", "eca+cbam", "baseline+p2"):
         with pytest.raises(ValueError):
             parseVariant(badName)
+
+
+# The command line computes the NWD constant from the training labels for a variant with nwd, unless --nwd-constant gives one
+def testCommandLineComputesNwdConstant(monkeypatch):
+    import sys
+    from smallobject import train
+    receivedConstants = []
+    monkeypatch.setattr(train, "resolveSplitImages", lambda dataYaml, split: (["image.jpg"], ["car"]))
+    monkeypatch.setattr(train, "computeNwdConstant", lambda imagePaths, imageSize: 9.5)
+    monkeypatch.setattr(train, "runVariant", lambda *arguments, **keywords: receivedConstants.append(arguments[12]))
+    for commandLine in (["--variant", "p2+nwd"], ["--variant", "p2+nwd", "--nwd-constant", "7"], ["--variant", "p2"]):
+        monkeypatch.setattr(sys, "argv", ["train", "--project", "runs", *commandLine])
+        train.main()
+    assert receivedConstants == [9.5, 7.0, train.defaultNwdConstant]
