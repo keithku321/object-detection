@@ -75,6 +75,7 @@
     <Compile Include="tests\test_results.py" />
     <Compile Include="tests\test_smallobject.py" />
     <Compile Include="tests\test_ultralytics_integration.py" />
+    <Compile Include="tests\test_trainAll.py" />
     <Compile Include="tests\test_training.py" />
     <Compile Include="tests\test_underwater.py" />
     <Compile Include="tests\test_weather_data.py" />

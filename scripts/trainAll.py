@@ -40,12 +40,20 @@ camoRoot = Path("camoedge/dataset/camo")
 continuousFlag, systemRequiredFlag = 0x80000000, 0x00000001
 # Size of the pieces in which a job's output is passed through to the terminal and the log file
 outputChunkSize = 4096
+# Jobs that need another job of the same run: the distilled student cannot start without the teacher of its fold
+jobPrerequisites = {"B weather full": "B weather teacher"}
 
 
 # Ask Windows not to sleep while the jobs run (a laptop otherwise pauses training after its idle timeout); does nothing elsewhere
 def keepComputerAwake(enabled):
     if sys.platform != "win32": return
     ctypes.windll.kernel32.SetThreadExecutionState(continuousFlag | systemRequiredFlag if enabled else continuousFlag)
+
+
+# Path for the summary: relative to the repository when it lies inside it, otherwise absolute (for example --project D:\runs)
+def describePath(path):
+    path = Path(path).resolve()
+    return path.relative_to(repositoryRoot).as_posix() if path.is_relative_to(repositoryRoot) else path.as_posix()
 
 
 # Write underwater/dataset/brackish/dataset.yaml when it is missing; it is git-ignored because it holds the absolute path of this machine
@@ -102,6 +110,7 @@ def runCommand(command, logPath):
                 sys.stdout.buffer.write(chunk)
                 sys.stdout.buffer.flush()
                 logFile.write(chunk)
+                logFile.flush()
         except KeyboardInterrupt:
             process.terminate()
             raise
@@ -151,17 +160,22 @@ def main():
                 print(f"\n===== {planLetter}: preparing the dataset =====\n", flush=True)
                 returnCode, seconds = runCommand(preparation, logPath)
                 records.append({"name": f"{planLetter} prepare dataset", "kind": "prepare", "status": "ok" if returnCode == 0 else f"failed ({returnCode})",
-                                "seconds": seconds, "log": logPath.relative_to(repositoryRoot).as_posix()})
+                                "seconds": seconds, "log": describePath(logPath)})
                 if returnCode != 0:
                     print(f"Preparation of plan {planLetter} failed; its training is skipped", flush=True)
                     continue
                 if planLetter == "A": ensureBrackishYaml()
             for jobName, command in buildJobs(planLetter, arguments.epochs, project, arguments.device, arguments.workers):
+                prerequisite = jobPrerequisites.get(jobName)
+                if prerequisite and any(record["name"] == prerequisite and record["status"] != "ok" for record in records):
+                    records.append({"name": jobName, "kind": "train", "status": f"skipped ({prerequisite} failed)", "seconds": 0.0, "log": "-"})
+                    print(f"\n----- {jobName}: skipped, because {prerequisite} failed -----", flush=True)
+                    continue
                 logPath = logFolder / f"{startedAt}_{jobName.replace(' ', '-')}.log"
                 print(f"\n===== {jobName}: {arguments.epochs} epoch(s) =====\n{' '.join(command)}\n", flush=True)
                 returnCode, seconds = runCommand(command, logPath)
                 records.append({"name": jobName, "kind": "train", "status": "ok" if returnCode == 0 else f"failed ({returnCode})", "seconds": seconds,
-                                "log": logPath.relative_to(repositoryRoot).as_posix()})
+                                "log": describePath(logPath)})
                 print(f"\n----- {jobName}: {records[-1]['status']} after {seconds / 60:.1f} minutes -----", flush=True)
     finally:
         keepComputerAwake(False)

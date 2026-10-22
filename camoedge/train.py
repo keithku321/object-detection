@@ -25,6 +25,8 @@ defaultLearningRate = 1e-4
 decayPower = 0.9
 # Largest gradient norm; larger gradients are scaled down to keep mixed-precision training stable
 gradientClipNorm = 1.0
+# Progress lines printed per epoch, so a long epoch in a terminal or scheduled task never looks like a hang
+progressReportsPerEpoch = 10
 
 
 # Seed Python, NumPy and PyTorch so a run can be repeated
@@ -93,7 +95,8 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
     for epoch in range(startEpoch, epochs):
         model.train()
         epochStart, runningParts = time.time(), {}
-        for batch in loader:
+        progressInterval = max(1, len(loader) // progressReportsPerEpoch)
+        for batchIndex, batch in enumerate(loader, start=1):
             image, mask, edge = batch["image"].to(device), batch["mask"].to(device), batch["edge"].to(device)
             with torch.autocast(device_type="cuda" if useAmp else "cpu", enabled=useAmp):
                 outputs = model(image)
@@ -105,6 +108,10 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
             scaler.step(optimiser)
             scaler.update()
             for partName, partValue in parts.items(): runningParts[partName] = runningParts.get(partName, 0.0) + partValue
+            if batchIndex % progressInterval == 0 and batchIndex < len(loader):
+                elapsedSeconds = time.time() - epochStart
+                print(f"  epoch {epoch + 1}/{epochs}  batch {batchIndex}/{len(loader)}  loss {runningParts['loss'] / batchIndex:.4f}  "
+                      f"{elapsedSeconds:.0f}s, about {elapsedSeconds / batchIndex * (len(loader) - batchIndex):.0f}s left", flush=True)
         scheduler.step()
         epochRecord = {partName: partValue / len(loader) for partName, partValue in runningParts.items()}
         epochRecord.update({"epoch": epoch + 1, "seconds": round(time.time() - epochStart, 1)})
