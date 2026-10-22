@@ -1,5 +1,5 @@
 # Tests for the results log and the summary table (common/results.py, common/summariseResults.py)
-from common.results import appendResultRow, buildResultRow, logSpeedRow, readResultRows
+from common.results import appendResultRow, buildResultRow, findResultRow, logSpeedRow, readResultRows
 from common.summariseResults import renderMarkdown, summariseRows
 
 
@@ -61,3 +61,14 @@ def testSpeedRowIsLoggedOnce(tmp_path):
     rows = readResultRows(tmp_path / "underwater.csv")
     assert len(rows) == 2 and float(secondRow["fps"]) == float(firstRow["fps"]) == 120.5 and "gpuName" not in rows[0]
     assert rows[0]["notes"] == "speed protocol"
+
+
+# A logged row is found only when every required note field matches a whole field, so a 1-epoch row never stands in for a 10-epoch run
+def testFindResultRowMatchesWholeNoteFields(tmp_path):
+    appendResultRow(buildResultRow("underwater", "yolo26n", "baseline", 0, {"map50": 0.5}, notes="split=val; head=one2one(nms=False); epochs=10"), tmp_path)
+    assert findResultRow("underwater", "yolo26n", "baseline", 0, "split=val;", tmp_path)
+    assert findResultRow("underwater", "yolo26n", "baseline", 0, ["split=val", "epochs=10"], tmp_path)
+    assert findResultRow("underwater", "yolo26n", "baseline", 0, ["split=val", "epochs=1"], tmp_path) is None
+    assert findResultRow("underwater", "yolo26n", "baseline", 0, ["split=test"], tmp_path) is None
+    assert findResultRow("underwater", "yolo26n", "baseline", 1, "", tmp_path) is None
+

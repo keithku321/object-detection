@@ -100,12 +100,20 @@ def appendResultRow(row, folder=resultsFolder):
     return writeResultRows(csvPath, readResultRows(csvPath) + [row])
 
 
-# Find an already logged row for the same task, model, variant and seed whose notes contain the given text; returns the row or None
-# Used so that re-running a notebook cell after a Colab restart does not append the same result twice
+# Split a notes text such as "split=val; epochs=50" into its fields ("split=val", "epochs=50"), ignoring empty ones
+def splitNoteFields(notes):
+    return [field.strip() for field in str(notes or "").split(";") if field.strip()]
+
+
+# Find an already logged row for the same task, model, variant and seed whose notes hold every required field; returns the row or None
+# notesContain is one field ("split=val;" or "split=val") or a list of them, and each must equal a whole field of the row's notes, so
+# "epochs=1" does not match a row of a 10-epoch run. Used so that re-running a cell after a Colab restart does not log the same run twice,
+# while a run with other settings (for example more epochs) still gets its own row
 def findResultRow(task, model, variant, seed, notesContain="", folder=resultsFolder):
+    requiredFields = [field for item in ([notesContain] if isinstance(notesContain, str) else notesContain) for field in splitNoteFields(item)]
     for row in readResultRows(Path(folder) / f"{task}.csv"):
         sameRun = (row["model"], row["variant"], str(row["seed"])) == (model, variant, str(seed))
-        if sameRun and notesContain in row.get("notes", ""): return row
+        if sameRun and set(requiredFields) <= set(splitNoteFields(row.get("notes", ""))): return row
     return None
 
 

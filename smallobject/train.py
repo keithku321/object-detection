@@ -82,7 +82,7 @@ def runVariant(variantName, seed, epochs, project, dataYaml=defaultDataYaml, sca
     runName = makeRunName(reportedName.replace("+", "-"), seed)
     bestWeights = trainDetector(variant["modelSource"], dataYaml, seed, epochs, Path(project) / taskName, runName, imageSize, batch, device, workers,
                                 variant["trainerClass"], variant["pretrained"], trainArguments=extraTrainArguments)
-    loggedRow = findResultRow(taskName, f"yolo26{scale}", reportedName, seed, f"split={evalSplit};")
+    loggedRow = findResultRow(taskName, f"yolo26{scale}", reportedName, seed, [f"split={evalSplit}", f"epochs={epochs}"])
     if loggedRow:
         print(f"{reportedName} seed {seed} is already logged for split={evalSplit}; skipping evaluation")
         savePlotOfRun(taskName, bestWeights, extractRowMetrics(loggedRow), notes=loggedRow.get("notes", ""))

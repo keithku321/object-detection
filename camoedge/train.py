@@ -73,6 +73,10 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
     startEpoch, history = 0, []
     if checkpointPath.exists():
         checkpoint = torch.load(checkpointPath, map_location="cpu", weights_only=False)
+        checkpointEpochs = checkpoint.get("settings", {}).get("epochs")
+        if checkpointEpochs is not None and int(checkpointEpochs) != int(epochs):
+            raise ValueError(f"{checkpointPath} belongs to a run of {checkpointEpochs} epochs, not {epochs}; its learning-rate schedule would not "
+                             f"match. Use another --project (for example runs/epochs{epochs}) or seed, or delete that folder.")
         model.load_state_dict(checkpoint["model"])
         optimiser.load_state_dict(checkpoint["optimiser"])
         scheduler.load_state_dict(checkpoint["scheduler"])

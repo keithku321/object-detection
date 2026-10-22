@@ -12,8 +12,8 @@ Where to get every dataset of the project, how big it is, what its terms say, an
 | [URPC / DUO](#urpc-and-duo-plan-a-second-dataset) | A | not checked | contest data / not stated | Manual download of DUO |
 | [DAWN](#dawn-plan-b) | B | 139 MB | Mendeley: CC BY-NC 3.0, but "all rights reserved, no distribution" | `python -m weather.prepareDawn --download-to weather/dataset --output weather/dataset/dawn` |
 | [VisDrone-DET](#visdrone-det-plan-c) | C | 1.94 GB | Copyright AISKYEYE; terms unconfirmed | Ultralytics downloads it when you train with `VisDrone.yaml` |
-| [COD10K](#cod10k-plan-d) | D | about 1.5 GB | non-commercial only | Manual download |
-| [CAMO](#camo-plan-d) | D | about 0.2 GB | research use | Manual download |
+| [COD10K](#cod10k-plan-d) | D | 1.8 GB (two zips, with CAMO) | non-commercial only | `python -m camoedge.prepareCamo --output camoedge/dataset` |
+| [CAMO](#camo-plan-d) | D | inside the COD10K zips | research use | same command as COD10K |
 | [NC4K](#nc4k-plan-d-optional) | D (optional) | not checked | not stated | Manual download |
 
 ## Brackish (Plan A)
@@ -101,12 +101,13 @@ Camouflaged object segmentation: 10,000 images, of which the 5,066 camouflaged o
 |---|---|
 | Repository with the download links | https://github.com/DengPingFan/SINet (opened) |
 | Full COD10K | Google Drive https://drive.google.com/file/d/1pVq1rWXCwkMbEZpTt4-yUQ3NsnQd_DNY/view?usp=sharing · Baidu https://pan.baidu.com/s/15GnPrMd6TGzMufEQ9IC66Q (code `aq4i`) (not tested) |
-| Training set | Google Drive https://drive.google.com/file/d/1D9bf1KeeCJsxxri6d2qAC7z6O1X_fxpt/view?usp=sharing · Baidu https://pan.baidu.com/s/1XL6OjpDF-MVnXOY6-bdaBg (code `djq2`) (not tested) |
-| Test sets (COD10K-test + CAMO-test + CHAMELEON in one zip) | Google Drive https://drive.google.com/file/d/1QEGnP9O7HbN_2tH999O3HRIsErIVYalx/view?usp=sharing · Baidu https://pan.baidu.com/s/143yHFLAabMBT7wgXA0LrMg (code `z83z`) (not tested) |
+| Training set | Google Drive https://drive.google.com/file/d/1D9bf1KeeCJsxxri6d2qAC7z6O1X_fxpt/view?usp=sharing · Baidu https://pan.baidu.com/s/1XL6OjpDF-MVnXOY6-bdaBg (code `djq2`) (Google Drive link downloaded 2026-10-22; Baidu not tested) |
+| Test sets (COD10K-test + CAMO-test + CHAMELEON in one zip) | Google Drive https://drive.google.com/file/d/1QEGnP9O7HbN_2tH999O3HRIsErIVYalx/view?usp=sharing · Baidu https://pan.baidu.com/s/143yHFLAabMBT7wgXA0LrMg (code `z83z`) (Google Drive link downloaded 2026-10-22; Baidu not tested) |
 | Unofficial Hugging Face copy, 1.57 GB, tagged cc-by-nc-4.0 | https://huggingface.co/datasets/nobg/COD10K (listed, not downloaded) |
 
 - **Terms:** the repository says COD10K is available for non-commercial purposes only and may not be reproduced, used or conveyed for commercial purposes. Do not republish.
-- **Catch:** the README calls the training zip "COD10K-train", but the NC4K authors say their benchmark methods are trained on "the COD10K training dataset (of size 4040)", which is 3,040 + 1,000, so it very probably includes CAMO-train. Count the images after unzipping: Plan D needs 4,040 in `TrainDataset/` (see the `camoedge` entry of the manifest).
+- **Checked on 2026-10-22:** the training zip (`TrainDataset.zip`, 1.14 GB) holds **4,040 pairs: COD10K-Tr 3,040 plus CAMO-Tr 1,000** (named `camourflage_*`), with `Imgs/`, `GT/` and `Edge/`, although the SINet README calls it "COD10K-train". The test zip (`TestDataset.zip`, 0.72 GB) holds COD10K-Te 2,026, CAMO-Te 250 and CHAMELEON 76. Together they are exactly the Plan D layout, so nothing has to be rearranged.
+- **In this repository:** `python -m camoedge.prepareCamo --output camoedge/dataset` downloads both zips with `gdown` (in `requirements.txt`; Google Drive needs its confirmation step), checks the SHA-256 values recorded in the `camoedge` entry of the manifest, unzips them into `camoedge/dataset/camo` (git-ignored) and checks the counts. Both downloads took under a minute from the cloud container.
 
 ## CAMO (Plan D)
 
@@ -115,7 +116,7 @@ Camouflaged object segmentation: 10,000 images, of which the 5,066 camouflaged o
 | What | Link |
 |---|---|
 | Official project page (the download link could not be read from the container: the page is built with scripts) | https://sites.google.com/view/ltnghia/research/camo (opened) |
-| CAMO-test inside the SINet test zip, CAMO-train probably inside the SINet training zip | see COD10K above |
+| CAMO-test inside the SINet test zip and CAMO-train inside the SINet training zip (checked 2026-10-22) | see COD10K above; `python -m camoedge.prepareCamo` fetches both |
 | Unofficial Hugging Face copy, 214 MB, no licence stated | https://huggingface.co/datasets/PassbyGrocer/CAMO (listed, not downloaded) |
 | Paper | Le et al., "Anabranch network for camouflaged object segmentation", Computer Vision and Image Understanding, 2019 |
 

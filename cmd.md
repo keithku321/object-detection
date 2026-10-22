@@ -3,7 +3,7 @@
 Copy-paste commands for this repository. Run everything from the repository root. The blocks use PowerShell (Windows); on Colab or Linux the same
 `python -m ...` lines work in a shell, with `/` in paths. **Keep this file in step with the code: when a command line, flag or default changes, update it here.**
 
-Contents: [Setup](#setup) · [Datasets](#datasets) · [Train](#train-locally) · [Results and plots](#results-and-plots) · [Evaluate and export](#evaluate-speed-and-export) · [Demo](#demo) · [Tests](#tests) · [Troubleshooting](#troubleshooting)
+Contents: [Setup](#setup) · [Datasets](#datasets) · [Train](#train-locally) · [All plans and the Windows scheduled task](#all-plans-in-one-go-and-the-windows-scheduled-task) · [Results and plots](#results-and-plots) · [Evaluate and export](#evaluate-speed-and-export) · [Demo](#demo) · [Tests](#tests) · [Troubleshooting](#troubleshooting)
 
 Conventions used below:
 - `--project runs` puts all runs in `runs/` (git-ignored). A run folder is `runs/<task>/<run name>/`, with `weights/`, Ultralytics' own charts and `results.csv`. The
@@ -61,6 +61,14 @@ pip install scikit-image scikit-learn scipy
 pip install pysodmetrics==1.6.2 --no-deps
 ```
 
+Linux machine without a GPU (for example a cloud container), Python 3.12 with `uv`, CPU build of PyTorch, then the shared requirements (bash):
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+uv pip install --python .venv/bin/python -r requirements.txt
+```
+
 ## Datasets
 
 Datasets are never committed (Brackish excepted). Full terms and links: `datasets/README.md`.
@@ -103,7 +111,13 @@ python -m weather.prepareDawn --source weather/dataset/dawn_raw --output weather
 
 Plan C, VisDrone: Ultralytics downloads and converts it by itself on the first training run (1.8 GB, goes to its own datasets folder); nothing to prepare.
 
-Plan D, COD10K and CAMO (about 1.7 GB): download by hand from the links in `datasets/README.md`, then pass the folder that contains `TrainDataset/` and `TestDataset/` as `--dataset` (examples below use `camoedge/dataset/camo`).
+Plan D, COD10K and CAMO (1.8 GB in two zips from the SINet authors' Google Drive, checked against the SHA-256 in the manifest, unzipped to `camoedge/dataset/camo` and counted: 4,040 training pairs, 2,026 COD10K and 250 CAMO test pairs). Needs `gdown` from `requirements.txt`:
+
+```powershell
+python -m camoedge.prepareCamo --output camoedge/dataset
+```
+
+If Google Drive refuses the file (it limits popular files for about a day), download the two zips by hand from `datasets/README.md`, put them in `camoedge/dataset/downloads/` and run the same command. The examples below pass `camoedge/dataset/camo` as `--dataset`.
 
 ## Train locally
 
@@ -256,6 +270,69 @@ Train only, evaluate later (the plot then shows the loss curves only):
 
 ```powershell
 python -m camoedge.train --experiment E1 --epochs 30 --skip-evaluation --dataset camoedge/dataset/camo --project runs
+```
+
+## All plans in one go and the Windows scheduled task
+
+`scripts/trainAll.py` runs the Phase 1 model of every plan one after the other, each in its own process, so a crash in one plan does not stop
+the others: Plan B teacher (batch 8), student and full distillation on fold 0, Plan D E1, Plan C baseline, then Plan A baseline, all seed 0.
+A missing DAWN, Brackish or COD10K/CAMO copy is downloaded first (VisDrone is downloaded by Ultralytics). The output stays visible in the
+terminal and is copied to `runs/epochs<N>/logs/`, which also gets a summary table (`<date>_summary.md`) with the minutes per job and per epoch.
+Each epoch budget has its own project folder (`runs/epochs1`, `runs/epochs50`), because a run folder made for another number of epochs is refused.
+Re-running the same command resumes unfinished runs and skips finished ones. On Windows it keeps the computer from idle sleep while it runs.
+
+One-epoch check of all four plans:
+
+```powershell
+python -m scripts.trainAll --epochs 1
+```
+
+All four plans for 50 epochs, or only some of them, or just print the commands:
+
+```powershell
+python -m scripts.trainAll --epochs 50
+```
+
+```powershell
+python -m scripts.trainAll --epochs 50 --plans A C
+```
+
+```powershell
+python -m scripts.trainAll --epochs 50 --dry-run
+```
+
+Windows scheduled task: registers the task `ObjectDetectionTraining` for the current user and starts it now; it opens a PowerShell window in the
+repository root that runs `python -m scripts.trainAll --epochs 50` with the `.venv` Python and stays open with the summary at the end. It only runs
+while you are logged on (that is what makes the window visible), may run on battery and has no time limit; keep the laptop plugged in and the lid open:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1 -StartNow
+```
+
+Start at a set time, or other epochs or plans (`-Plans A,C` is fine):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1 -At "2026-10-23 01:00" -Epochs 50 -Plans A,C
+```
+
+See whether it is running, and the latest summary:
+
+```powershell
+Get-ScheduledTask -TaskName ObjectDetectionTraining | Get-ScheduledTaskInfo
+```
+
+```powershell
+Get-ChildItem runs/epochs50/logs/*_summary.md | Sort-Object LastWriteTime | Select-Object -Last 1 | Get-Content
+```
+
+Stop it, or remove it:
+
+```powershell
+Stop-ScheduledTask -TaskName ObjectDetectionTraining
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1 -Remove
 ```
 
 ## Results and plots
@@ -427,3 +504,14 @@ CUDA out of memory:
 ```powershell
 python -m underwater.train --variant baseline --seed 0 --epochs 1 --label trial --batch 8 --data underwater/dataset/brackish/dataset.yaml --project runs
 ```
+
+"... holds a run started with 20 epochs, not 50": the run folder belongs to a run with another epoch count (for example your 20-epoch
+`runs/underwater/baseline-seed0`). Resuming or skipping it would report that run under the new epoch count, so the scripts stop. Use another
+project folder, which keeps both runs:
+
+```powershell
+python -m underwater.train --variant baseline --seed 0 --epochs 50 --data underwater/dataset/brackish/dataset.yaml --project runs/epochs50
+```
+
+A training process ends with exit code -9 or "Killed" and no Python error: the operating system ran out of memory. Lower `--batch` (the Plan B
+teacher, YOLO26m, needed 13.9 GB at batch 16 on a CPU; `scripts/trainAll.py` trains it at batch 8).

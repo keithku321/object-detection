@@ -70,7 +70,7 @@ def runFold(mode, foldIndex, seed, epochs, datasetRoot, project, imageSize=proto
         raise ValueError(f"Unknown mode '{mode}'. Known: student, teacher, {sorted(distillPresets)}")
     reportedWeights = bestWeights.parent / "last.pt"
     notes = f"fold={foldIndex}; epochs={epochs}; checkpoint=last" + (f"; overrides={overrides}" if overrides else "")
-    loggedRow = findResultRow(taskName, modelName, variant, seed, f"fold={foldIndex};")
+    loggedRow = findResultRow(taskName, modelName, variant, seed, [f"fold={foldIndex}", f"epochs={epochs}"])
     if loggedRow:
         print(f"{variant} fold {foldIndex} seed {seed} is already logged; skipping evaluation")
         savePlotOfRun(taskName, reportedWeights, extractRowMetrics(loggedRow), notes=loggedRow.get("notes", ""))

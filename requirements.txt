@@ -39,6 +39,8 @@ imagehash==4.3.2
 
 # Dataset download from the Hugging Face dataset repo (common/datasets.py)
 huggingface_hub>=0.30
+# Plan D: COD10K and CAMO are only served from Google Drive, whose large files need gdown's confirmation handling (camoedge/prepareCamo.py)
+gdown==6.4.2
 
 # Export and CPU latency (Plan A ONNX, Plan B INT8 through ONNX Runtime). Ultralytics would install these on first
 # export anyway; pinning them keeps exported models comparable. On a GPU PC you may swap onnxruntime for

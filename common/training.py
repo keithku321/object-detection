@@ -7,7 +7,7 @@ from pathlib import Path
 from common.benchmark import countParametersAndGflops
 from common.environment import getDefaultDevice, getDefaultWorkerCount
 from common.plotResults import extractPerClassScores, extractRowMetrics, plotDetectionRun, trySavePlot
-from common.results import appendResultRow, buildResultRow, extractDetectionMetrics, findResultRow
+from common.results import appendResultRow, buildResultRow, extractDetectionMetrics, findResultRow, splitNoteFields
 
 # Image size used for training and validation in every comparison
 protocolImageSize = 640
@@ -40,6 +40,23 @@ def findResumableCheckpoint(runFolder):
     return lastPath if checkpoint.get("optimizer") is not None else None
 
 
+# Number of epochs that an existing run folder was started with (from Ultralytics' args.yaml), or None when it cannot be read
+def readRunEpochs(runFolder):
+    argumentsPath = Path(runFolder) / "args.yaml"
+    if not argumentsPath.exists(): return None
+    import yaml
+    return (yaml.safe_load(argumentsPath.read_text(encoding="utf-8")) or {}).get("epochs")
+
+
+# Stop when a run folder already holds a run with another number of epochs: resuming or skipping it would silently report that run under
+# the new epoch count (for example a finished 20-epoch run reused for a 50-epoch request)
+def checkRunEpochs(runFolder, epochs):
+    runEpochs = readRunEpochs(runFolder)
+    if runEpochs is not None and int(runEpochs) != int(epochs):
+        raise ValueError(f"{runFolder} holds a run started with {runEpochs} epochs, not {epochs}. Use another --project (for example "
+                         f"runs/epochs{epochs}), another --label or seed, or delete that folder.")
+
+
 # Train one detector. The run folder is fixed by project and runName, so a restarted session continues from last.pt on Drive.
 # modelSource is a .pt path (pretrained start) or a model YAML; pretrained is True, False or a .pt path used to initialise a YAML model.
 # trainerClass is an optional Ultralytics trainer subclass (layer map trainer, distillation trainer, NWD trainer).
@@ -50,6 +67,7 @@ def trainDetector(modelSource, dataYaml, seed, epochs, project, runName, imageSi
     runFolder = Path(project).resolve() / runName
     trainerArguments = {"trainer": trainerClass} if trainerClass else {}
     resumableCheckpoint = findResumableCheckpoint(runFolder) if resume else None
+    if resume and (resumableCheckpoint or (runFolder / "weights" / "best.pt").exists()): checkRunEpochs(runFolder, epochs)
     if resumableCheckpoint:
         print(f"Resuming {runName} from {resumableCheckpoint}")
         YOLO(str(resumableCheckpoint)).train(resume=True, data=str(dataYaml), **trainerArguments)
@@ -85,12 +103,14 @@ def savePlotOfRun(task, weightsPath, finalMetrics=None, perClass=None, notes="")
 
 
 # Evaluate a trained model, add parameter and GFLOP counts, and append one row to results/<task>.csv; returns the row
-# A run that already has a row for the same split is not evaluated or logged again, so cells can be re-run after a Colab restart;
+# A run that already has a row for the same split and the same notes (epochs and so on) is not evaluated or logged again, so cells can be
+# re-run after a Colab restart;
 # pass relog=True to force a new row. savePlot=True also saves the results plot of the run (see common/plotResults.py).
 def evaluateAndLog(task, modelName, variant, seed, weightsPath, dataYaml, split="val", imageSize=protocolImageSize,
                    batch=defaultBatchSize, device=None, extraMetrics=None, extraArguments=None, notes="", resultsFolder=None, relog=False, savePlot=True):
-    existingRow = None if relog else (findResultRow(task, modelName, variant, seed, f"split={split};") if resultsFolder is None
-                                      else findResultRow(task, modelName, variant, seed, f"split={split};", resultsFolder))
+    requiredFields = [f"split={split}", *splitNoteFields(notes)]
+    existingRow = None if relog else (findResultRow(task, modelName, variant, seed, requiredFields) if resultsFolder is None
+                                      else findResultRow(task, modelName, variant, seed, requiredFields, resultsFolder))
     if existingRow:
         print(f"{variant} seed {seed} is already logged for split={split}; skipping evaluation")
         if savePlot: savePlotOfRun(task, weightsPath, extractRowMetrics(existingRow), notes=existingRow.get("notes", ""))

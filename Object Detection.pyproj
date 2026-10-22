@@ -48,6 +48,8 @@
     <Compile Include="weather\prune.py" />
     <Compile Include="weather\quantise.py" />
     <Compile Include="weather\train.py" />
+    <Compile Include="scripts\__init__.py" />
+    <Compile Include="scripts\trainAll.py" />
     <Compile Include="smallobject\__init__.py" />
     <Compile Include="smallobject\demoTab.py" />
     <Compile Include="smallobject\evalCoco.py" />
@@ -55,6 +57,7 @@
     <Compile Include="smallobject\train.py" />
     <Compile Include="camoedge\__init__.py" />
     <Compile Include="camoedge\dataset.py" />
+    <Compile Include="camoedge\prepareCamo.py" />
     <Compile Include="camoedge\demoTab.py" />
     <Compile Include="camoedge\evaluate.py" />
     <Compile Include="camoedge\losses.py" />
@@ -64,6 +67,7 @@
     <Compile Include="demo\__init__.py" />
     <Compile Include="demo\app.py" />
     <Compile Include="tests\test_camoedge_metrics.py" />
+    <Compile Include="tests\test_camoedge_prepare.py" />
     <Compile Include="tests\test_datasets.py" />
     <Compile Include="tests\test_distill.py" />
     <Compile Include="tests\test_modules.py" />
@@ -71,6 +75,7 @@
     <Compile Include="tests\test_results.py" />
     <Compile Include="tests\test_smallobject.py" />
     <Compile Include="tests\test_ultralytics_integration.py" />
+    <Compile Include="tests\test_training.py" />
     <Compile Include="tests\test_underwater.py" />
     <Compile Include="tests\test_weather_data.py" />
   </ItemGroup>
@@ -82,6 +87,7 @@
     <Folder Include="smallobject\" />
     <Folder Include="smallobject\configs\" />
     <Folder Include="tests\" />
+    <Folder Include="scripts\" />
     <Folder Include="underwater\" />
     <Folder Include="underwater\configs\" />
     <Folder Include="weather\" />

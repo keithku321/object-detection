@@ -37,7 +37,7 @@ def evaluateByWeather(weightsPath, datasetRoot, foldIndex, imageSize=protocolIma
 # A fold that already has per-weather rows for this variant and seed is skipped, so cells can be re-run after a Colab restart
 def logByWeather(modelName, variant, seed, weightsPath, datasetRoot, foldIndex, imageSize=protocolImageSize, device=None, notes=""):
     weatherTypes, _ = getDawnSettings()
-    if any(findResultRow(taskName, modelName, f"{variant}@{weatherType}", seed, f"fold={foldIndex};") for weatherType in weatherTypes):
+    if any(findResultRow(taskName, modelName, f"{variant}@{weatherType}", seed, [f"fold={foldIndex}", notes]) for weatherType in weatherTypes):
         print(f"{variant} seed {seed} fold {foldIndex} already has per-weather rows; skipping")
         return {}
     metricsByWeather = evaluateByWeather(weightsPath, datasetRoot, foldIndex, imageSize, device)
