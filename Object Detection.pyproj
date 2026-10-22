@@ -97,6 +97,7 @@
     <Content Include="requirements.txt" />
     <Content Include="requirements-local.txt" />
     <Content Include="pytest.ini" />
+    <Content Include="scripts\registerTrainingTask.ps1" />
     <Content Include="datasets\manifest.json" />
     <Content Include="datasets\README.md" />
     <Content Include="underwater\underwater_colab.ipynb" />

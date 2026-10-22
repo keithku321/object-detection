@@ -117,9 +117,11 @@ model on eight CAMO images.
 
 ## 50-epoch training
 
-The Phase 1 baselines of all four plans, 50 epochs each, seed 0, run one after the other by a Windows scheduled task (set up after this setup was committed;
-the task's name, start time and script are recorded below once it runs):
-`python -m scripts.trainAllPlans --epochs 50 --project runs` in a visible PowerShell window in the repository root. The runs are A `baseline-50ep`, B `teacher`
+The Phase 1 baselines of all four plans, 50 epochs each, seed 0, run one after the other by the Windows scheduled task `ObjectDetection-TrainAllPlans`,
+registered and started on the evening of 2026-10-22 with `scripts/registerTrainingTask.ps1` (commands in `cmd.md`) right after this file was committed. It runs
+`python -m scripts.trainAllPlans --epochs 50 --project runs` in a visible Windows PowerShell window in the repository root, as the signed-in user; the exact start
+time and every run's start, end and exit code are in `runs/logs/<date>_trainAllPlans.log`. If the PC restarts or the user signs out, the task stops; start it
+again with `Start-ScheduledTask -TaskName ObjectDetection-TrainAllPlans` and it resumes the unfinished run. The runs are A `baseline-50ep`, B `teacher`
 then `student` on fold 0, C `baseline`, D `E1`; results rows go to `results/<task>.csv`, plots to `results/plots/<task>/`, final weights to `runs/weights/`, and
 one log per run plus a summary log to `runs/logs/`.
 

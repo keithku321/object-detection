@@ -163,6 +163,41 @@ Follow a running log (second terminal):
 Get-ChildItem runs/logs/*.log | Sort-Object LastWriteTime | Select-Object -Last 1 | Get-Content -Wait -Tail 20
 ```
 
+### Windows scheduled task (`scripts/registerTrainingTask.ps1`)
+
+Registers the task `ObjectDetection-TrainAllPlans` and starts it at once: it runs the command above (50 epochs, `--project runs`) in a visible Windows PowerShell
+window in the repository root, as the signed-in user and only while that user is signed in. The window stays open after the last run so the summary can be read:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1
+```
+
+Start at a set time instead, for example overnight:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1 -StartAt "2026-10-23 01:00"
+```
+
+State and last result of the task:
+
+```powershell
+Get-ScheduledTask -TaskName ObjectDetection-TrainAllPlans | Get-ScheduledTaskInfo
+```
+
+Start it again after a restart or sign-out (unfinished runs resume, finished ones are skipped):
+
+```powershell
+Start-ScheduledTask -TaskName ObjectDetection-TrainAllPlans
+```
+
+Stop the training: press Ctrl+C in its window or close the window (closing ends every process in it). Delete the task (runs, results and weights stay):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registerTrainingTask.ps1 -Remove
+```
+
+### Results folder for trials
+
 Any training command can write its results rows somewhere else through the environment variable `FYP_RESULTS_FOLDER` (`common/results.py`):
 
 ```powershell
