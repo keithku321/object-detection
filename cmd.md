@@ -105,7 +105,69 @@ Plan C, VisDrone: Ultralytics downloads and converts it by itself on the first t
 
 Plan D, COD10K and CAMO (about 1.7 GB): download by hand from the links in `datasets/README.md`, then pass the folder that contains `TrainDataset/` and `TestDataset/` as `--dataset` (examples below use `camoedge/dataset/camo`).
 
+Plan D from the SINet Google Drive links with `gdown` (checked 2026-10-22: `TrainDataset.zip` holds 4,040 COD10K-Tr + CAMO-Tr pairs, `TestDataset.zip` holds COD10K 2,026, CAMO 250 and CHAMELEON 76; SHA-256 values in `localSetup.md`). `gdown` is only a download helper, so install it outside the project's `.venv` if you prefer:
+
+```powershell
+pip install gdown
+```
+
+```powershell
+gdown 1D9bf1KeeCJsxxri6d2qAC7z6O1X_fxpt -O camoedge/dataset/TrainDataset.zip
+```
+
+```powershell
+gdown 1QEGnP9O7HbN_2tH999O3HRIsErIVYalx -O camoedge/dataset/TestDataset.zip
+```
+
+```powershell
+Get-FileHash camoedge/dataset/TrainDataset.zip, camoedge/dataset/TestDataset.zip -Algorithm SHA256
+```
+
+```powershell
+Expand-Archive camoedge/dataset/TrainDataset.zip camoedge/dataset/camo
+```
+
+```powershell
+Expand-Archive camoedge/dataset/TestDataset.zip camoedge/dataset/camo
+```
+
 ## Train locally
+
+### All plans one after the other (`scripts/trainAllPlans.py`)
+
+Trains the Phase 1 baselines: A `baseline`, B `teacher` then `student` on fold 0, C `baseline`, D `E1`. Plan A's run and results row are named
+`baseline-<epochs>ep`, because `results/underwater.csv` already holds the 20-epoch `baseline` row of seed 0. Each run is a separate process whose output is shown
+live in the console and copied to its own log in `<project>/logs/`, next to a summary log `<date>_trainAllPlans.log`; a failed run does not stop the others, and the
+PC is kept awake until the last run ends. Start it from the repository root with the `.venv` interpreter, because the runs use the interpreter that started them:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.trainAllPlans --epochs 50 --project runs
+```
+
+One-epoch check of every plan. A trial needs its own `--project` and `--results-folder`: Plans A, B and C find an earlier results row by variant, seed and fold
+or split (not by epochs), so a one-epoch row in `results/` would make the real run skip its evaluation:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.trainAllPlans --epochs 1 --project runs/epoch1-check --results-folder runs/epoch1-check/results
+```
+
+Only some plans:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.trainAllPlans --epochs 50 --project runs --plans B D
+```
+
+Follow a running log (second terminal):
+
+```powershell
+Get-ChildItem runs/logs/*.log | Sort-Object LastWriteTime | Select-Object -Last 1 | Get-Content -Wait -Tail 20
+```
+
+Any training command can write its results rows somewhere else through the environment variable `FYP_RESULTS_FOLDER` (`common/results.py`):
+
+```powershell
+$env:FYP_RESULTS_FOLDER = "runs/trial/results"; python -m smallobject.train --variant baseline --seed 0 --epochs 1 --project runs/trial; Remove-Item Env:FYP_RESULTS_FOLDER
+```
 
 ### Plan A: underwater (`underwater/train.py`)
 
@@ -221,11 +283,14 @@ python -m smallobject.train --variant p2+eca --write-config
 ### Plan D: CamoEdge (`camoedge/train.py`, plain PyTorch)
 
 Experiments `E1` to `E5` (the E6 and E7 sweeps use `--edge-weight`, `--gating` and `--encoder`). Trains, evaluates on the test sets, appends results rows and saves the plot. A checkpoint is written every epoch and the same command resumes.
+Like Plans A to C, the final weights are copied to `<project>/weights/camoedge-<variant>-seed<k>.pt` (weights in half precision and settings, without the
+optimiser state, about 50 MB), for example `runs/weights/camoedge-E1-seed0.pt`; the full checkpoint stays in `runs/camoedge/<variant>-seed<k>/last.pt`. A `--subset`
+trial makes no copy.
 
-Quick local trial on 100 images:
+Quick local trial on 100 images (in its own project folder: a trial in `runs` would leave a two-epoch `E5-seed0` run that the real run then resumes from):
 
 ```powershell
-python -m camoedge.train --experiment E5 --subset 100 --epochs 2 --dataset camoedge/dataset/camo --project runs
+python -m camoedge.train --experiment E5 --subset 100 --epochs 2 --dataset camoedge/dataset/camo --project runs/trial
 ```
 
 E1, 30 epochs:

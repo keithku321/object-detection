@@ -1,5 +1,6 @@
 # Demo tab for Plan D: upload an image and see the predicted camouflage mask, the edge map and an overlay, with a threshold slider.
-# Edit demoWeights after the final runs; the files come from camoedge/train.py exportFinalWeights (local paths or release URLs).
+# Edit demoWeights after the final runs; the files are the slim copies that python -m camoedge.train writes to <project>/weights/ (exportFinalWeights),
+# given as local paths or release URLs.
 import functools
 
 import numpy as np
@@ -57,7 +58,7 @@ def buildTab():
     def onImage(image, optionLabel, threshold):
         if image is None: return None, None, None, "Upload an image first."
         weightsPath = resolveWeights(demoWeights.get(optionLabel))
-        if weightsPath is None: return None, None, None, f"Weights for '{optionLabel}' were not found. Train the model, then export it with camoedge/train.py exportFinalWeights."
+        if weightsPath is None: return None, None, None, f"Weights for '{optionLabel}' were not found. Train the model with python -m camoedge.train (it writes <project>/weights/camoedge-<variant>-seed<k>.pt) and point demoWeights at that file."
         maskProbability, edgeProbability = segmentImage(weightsPath, image)
         binaryMask = maskProbability >= threshold
         edgeImage = (edgeProbability * 255).astype(np.uint8) if edgeProbability is not None else None

@@ -1,15 +1,22 @@
 # Results log: every run appends one row to results/<task>.csv (task, model, variant, seed, metrics, GPU, commit, versions)
-# Steward: plan B owner (plans/05-team-workflow.md). Rows are committed to git; weights are not.
+# Steward: plan B owner (plans/05-team-workflow.md). Rows are committed to git; weights are not, except the final weights allowed by decision D8.
 import csv
+import os
 import subprocess
 from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
 
-# Folder that holds one results CSV per task
-resultsFolder = Path(__file__).resolve().parent.parent / "results"
+# Environment variable that moves the results log to another folder, so trial runs (for example scripts/trainAllPlans.py --results-folder)
+# neither mix with the real rows nor make a later real run skip its evaluation because a row with the same variant and seed exists
+resultsFolderVariable = "FYP_RESULTS_FOLDER"
+# Folder that holds one results CSV per task: results/ in the repository unless the environment variable above is set
+resultsFolder = Path(os.environ[resultsFolderVariable]).resolve() if os.environ.get(resultsFolderVariable) else Path(__file__).resolve().parent.parent / "results"
 # Repository root, used to find the git commit
 repositoryRoot = Path(__file__).resolve().parent.parent
+# Folders whose changes do not make a result "dirty": every run adds rows and plots to results/ and final weights to runs/weights/, so counting them
+# would mark every run after the first one of a session as dirty although the code did not change
+generatedFolders = ("results", "runs")
 # Task names that own a results file
 validTasks = ("underwater", "weather", "smallobject", "camoedge")
 # Columns that start every row, in this order
@@ -28,11 +35,12 @@ def getGpuName():
     return "cpu"
 
 
-# Short git commit of the code that produced a result; a "-dirty" suffix means there were uncommitted changes
+# Short git commit of the code that produced a result; a "-dirty" suffix means the code had uncommitted changes (outside generatedFolders)
 def getGitCommit(repositoryPath=repositoryRoot):
     try:
         commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repositoryPath, capture_output=True, text=True, check=True).stdout.strip()
-        status = subprocess.run(["git", "status", "--porcelain"], cwd=repositoryPath, capture_output=True, text=True, check=True).stdout.strip()
+        codeOnly = ["--", ".", *[f":(exclude){folder}" for folder in generatedFolders]]
+        status = subprocess.run(["git", "status", "--porcelain", *codeOnly], cwd=repositoryPath, capture_output=True, text=True, check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
     return f"{commit}-dirty" if status else commit

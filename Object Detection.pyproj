@@ -64,6 +64,7 @@
     <Compile Include="demo\__init__.py" />
     <Compile Include="demo\app.py" />
     <Compile Include="tests\test_camoedge_metrics.py" />
+    <Compile Include="tests\test_camoedge_train.py" />
     <Compile Include="tests\test_datasets.py" />
     <Compile Include="tests\test_distill.py" />
     <Compile Include="tests\test_modules.py" />
@@ -73,12 +74,15 @@
     <Compile Include="tests\test_ultralytics_integration.py" />
     <Compile Include="tests\test_underwater.py" />
     <Compile Include="tests\test_weather_data.py" />
+    <Compile Include="scripts\__init__.py" />
+    <Compile Include="scripts\trainAllPlans.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="camoedge\" />
     <Folder Include="common\" />
     <Folder Include="datasets\" />
     <Folder Include="demo\" />
+    <Folder Include="scripts\" />
     <Folder Include="smallobject\" />
     <Folder Include="smallobject\configs\" />
     <Folder Include="tests\" />

@@ -1,5 +1,10 @@
 # Tests for the results log and the summary table (common/results.py, common/summariseResults.py)
-from common.results import appendResultRow, buildResultRow, logSpeedRow, readResultRows
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from common.results import appendResultRow, buildResultRow, getGitCommit, logSpeedRow, readResultRows, resultsFolderVariable
 from common.summariseResults import renderMarkdown, summariseRows
 
 
@@ -61,3 +66,27 @@ def testSpeedRowIsLoggedOnce(tmp_path):
     rows = readResultRows(tmp_path / "underwater.csv")
     assert len(rows) == 2 and float(secondRow["fps"]) == float(firstRow["fps"]) == 120.5 and "gpuName" not in rows[0]
     assert rows[0]["notes"] == "speed protocol"
+
+
+# The results folder follows the environment variable, so a trial run (scripts/trainAllPlans.py --results-folder) keeps its rows apart
+def testResultsFolderFollowsEnvironmentVariable(tmp_path):
+    repositoryRoot = Path(__file__).resolve().parent.parent
+    command = [sys.executable, "-c", "from common.results import resultsFolder; print(resultsFolder)"]
+    movedFolder = subprocess.run(command, cwd=repositoryRoot, capture_output=True, text=True, env={**os.environ, resultsFolderVariable: str(tmp_path)}).stdout.strip()
+    defaultEnvironment = {name: value for name, value in os.environ.items() if name != resultsFolderVariable}
+    defaultFolder = subprocess.run(command, cwd=repositoryRoot, capture_output=True, text=True, env=defaultEnvironment).stdout.strip()
+    assert Path(movedFolder) == tmp_path.resolve() and Path(defaultFolder) == repositoryRoot / "results"
+
+
+# New rows and plots in results/ and final weights in runs/ do not make a result "dirty"; an uncommitted change to the code does
+def testGitCommitIgnoresGeneratedFolders(tmp_path):
+    def runGit(*arguments): subprocess.run(["git", *arguments], cwd=tmp_path, capture_output=True, check=True)
+    runGit("init")
+    runGit("-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--allow-empty", "-m", "start")
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "underwater.csv").write_text("row\n", encoding="utf-8")
+    (tmp_path / "runs" / "weights").mkdir(parents=True)
+    (tmp_path / "runs" / "weights" / "underwater-baseline-seed0.pt").write_bytes(b"weights")
+    assert getGitCommit(tmp_path) != "unknown" and not getGitCommit(tmp_path).endswith("-dirty")
+    (tmp_path / "train.py").write_text("changed\n", encoding="utf-8")
+    assert getGitCommit(tmp_path).endswith("-dirty")
