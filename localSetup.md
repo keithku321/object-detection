@@ -126,6 +126,25 @@ then `student` on fold 0, C `baseline`, D `E1`; results rows go to `results/<tas
 one log per run plus a summary log to `runs/logs/`.
 
 50 epochs is the default length of Plans A and C; Plan B's scripts default to 100 epochs and Plan D's to 30, so the B and D rows of this run do not use their
-plans' default length (the notes column of each row records `epochs=50`). Expected duration, from the one-epoch times above (shared GPU): A about 6.1 h, B about 2.6 h, C about 3.3 h, D about 3.7 h, **about 16 hours in total**. The
+plans' default length (the notes column of each row records `epochs=50`). **Result (2026-10-22 21:59 to 2026-10-23 01:38, 3 h 40 min, every run exit code 0, all rows from the clean commit `8b527eca`).** The game was closed soon
+after the start, so the GPU was free and the runs were much faster than the estimate below. Seed 0 only, so these are baselines to compare against, not
+final numbers (those need three seeds).
+
+| Plan | Run | Time | Reported result |
+|---|---|---|---|
+| A | `baseline-50ep`, YOLO26n, Brackish `val` (`best.pt`) | 62.9 min | mAP50 **0.597**, mAP50-95 0.344, precision 0.580, recall 0.566. Best epoch 6 (val mAP50 0.601), then flat: the overfitting seen in the 20-epoch run. Per class mAP50: starfish 0.976, jellyfish 0.860, fish 0.847, small_fish 0.796, shrimp 0.099, **crab 0.000** (1,226 boxes, still never detected) |
+| B | `teacher`, YOLO26m, DAWN fold 0 (`last.pt`) | 16.2 min | mAP50 **0.647**, mAP50-95 0.382; fog 0.654, rain 0.706, snow 0.866, sand 0.630 |
+| B | `student`, YOLO26n, DAWN fold 0 (`last.pt`) | 5.7 min | mAP50 **0.635**, mAP50-95 0.405; fog 0.585, rain 0.636, snow 0.835, sand 0.732 |
+| C | `baseline`, YOLO26n, VisDrone `val` | 45.2 min | mAP50 **0.291**, mAP50-95 0.159; COCO AP small **0.083**, medium 0.245, large 0.439 |
+| D | `E1`, PVTv2-B2, test sets (`last.pt`) | 89.5 min | COD10K: S-measure **0.853**, mean E-measure 0.882, weighted F 0.717, MAE 0.029; CAMO: S-measure **0.854**, weighted F 0.780, MAE 0.055 |
+
+- **The Plan B teacher learned:** val mAP50 0.571 after its first epoch of this run, best 0.664 (epoch 45), 0.646 at the end. The 0.001 of the one-epoch check
+  was an effect of training for a single epoch, not a broken teacher. But the teacher is only 0.012 mAP50 above the student on fold 0, and lower than it on
+  sand (0.630 against 0.732) and in mAP50-95 (0.382 against 0.405): with this little headroom, distillation has little to gain from this teacher. Plan B's owner
+  should check this on the other folds and consider the 100 epochs of the plan before Phase 2.
+- Committed with this result: the rows in `results/*.csv`, the plots in `results/plots/`, and the final weights `runs/weights/underwater-baseline-50ep-seed0.pt`
+  (5.4 MB) and `runs/weights/camoedge-E1-seed0.pt` (50 MB). The Plan B and C weights stay on this PC (decision D8).
+
+Expected duration before the run, from the one-epoch times above (shared GPU): A about 6.1 h, B about 2.6 h, C about 3.3 h, D about 3.7 h, **about 16 hours in total**. The
 one-epoch runs had mosaic augmentation switched off (Ultralytics turns it off for the last 10 epochs, which was the only epoch here), so the long runs of A and C
 may be somewhat slower per epoch; with the GPU free they should be faster.
