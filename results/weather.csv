@@ -1,0 +1,11 @@
+task,model,variant,seed,map50,map50_95,precision,recall,parameters,gflops,images,gpu,commit,ultralytics,torch,timestamp,notes
+weather,yolo26m,teacher,0,0.646902,0.381881,0.70052,0.642798,20354078.0,68.107,,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:18:07+00:00,split=val; head=one2one(nms=False); fold=0; epochs=50; checkpoint=last
+weather,yolo26m,teacher@fog,0,0.653903,0.417146,0.827876,0.568673,,,62.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:18:24+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26m,teacher@rain,0,0.705872,0.39369,0.662032,0.68197,,,40.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:18:24+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26m,teacher@snow,0,0.86596,0.62908,0.881871,0.75189,,,41.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:18:24+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26m,teacher@sand,0,0.630099,0.374456,0.600037,0.623418,,,67.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:18:24+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26n,student,0,0.63527,0.405087,0.745316,0.541806,2390950.0,5.381,,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:23:50+00:00,split=val; head=one2one(nms=False); fold=0; epochs=50; checkpoint=last
+weather,yolo26n,student@fog,0,0.585357,0.366709,0.770847,0.493902,,,62.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:24:05+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26n,student@rain,0,0.636023,0.349644,0.524763,0.568687,,,40.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:24:06+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26n,student@snow,0,0.83534,0.561295,0.885248,0.670619,,,41.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:24:06+00:00,fold=0; epochs=50; checkpoint=last
+weather,yolo26n,student@sand,0,0.732268,0.522492,0.71512,0.650618,,,67.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T15:24:06+00:00,fold=0; epochs=50; checkpoint=last

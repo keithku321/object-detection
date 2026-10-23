@@ -86,10 +86,12 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
         return checkpointPath
     loader = buildTrainingLoader(datasetRoot, imageSize, batchSize, getDefaultWorkerCount() if workers is None else workers, maximumCount)
     print(f"{variantName}: {countParameters(model):,} parameters, {len(loader.dataset)} training images, device {device}")
+    # An epoch takes minutes, so progress is printed ten times per epoch for whoever watches the terminal
+    progressStep = max(1, len(loader) // 10)
     for epoch in range(startEpoch, epochs):
         model.train()
         epochStart, runningParts = time.time(), {}
-        for batch in loader:
+        for batchIndex, batch in enumerate(loader, start=1):
             image, mask, edge = batch["image"].to(device), batch["mask"].to(device), batch["edge"].to(device)
             with torch.autocast(device_type="cuda" if useAmp else "cpu", enabled=useAmp):
                 outputs = model(image)
@@ -101,6 +103,8 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
             scaler.step(optimiser)
             scaler.update()
             for partName, partValue in parts.items(): runningParts[partName] = runningParts.get(partName, 0.0) + partValue
+            if batchIndex % progressStep == 0:
+                print(f"  epoch {epoch + 1}/{epochs}: batch {batchIndex}/{len(loader)}, loss {runningParts['loss'] / batchIndex:.4f}, {time.time() - epochStart:.0f}s", flush=True)
         scheduler.step()
         epochRecord = {partName: partValue / len(loader) for partName, partValue in runningParts.items()}
         epochRecord.update({"epoch": epoch + 1, "seconds": round(time.time() - epochStart, 1)})
@@ -111,17 +115,21 @@ def trainCamoEdge(experimentName, datasetRoot, project, seed=0, epochs=30, batch
     return checkpointPath
 
 
-# Save a slim copy of a checkpoint (weights and settings only) as <weightsFolder>/camoedge-<variant>-seed<k>.pt for the demo or a release
+# Save a slim copy of a checkpoint (weights and settings only) as <weightsFolder>/camoedge-<variant>-seed<k>.pt for the demo or a release.
+# The weights are stored in half precision, as Ultralytics stores its final weights: about 50 MB instead of 100 MB for the PVTv2-B2 models, which keeps
+# them below GitHub's 100 MB file limit (runs/weights/README.md). loadCheckpointModel builds the model in float32, so they load back as float32;
+# reported numbers come from last.pt, which stays in full precision.
 def exportFinalWeights(checkpointPath, weightsFolder):
     checkpoint = torch.load(checkpointPath, map_location="cpu", weights_only=False)
     settings = checkpoint["settings"]
+    halfPrecisionWeights = {name: tensor.half() if tensor.is_floating_point() else tensor for name, tensor in checkpoint["model"].items()}
     targetPath = Path(weightsFolder) / f"{taskName}-{settings['variantName']}-seed{settings['seed']}.pt"
     targetPath.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model": checkpoint["model"], "settings": settings}, targetPath)
+    torch.save({"model": halfPrecisionWeights, "settings": settings}, targetPath)
     return targetPath
 
 
-# Command line entry point: train, then evaluate on the test sets, append results rows and save the results plot
+# Command line entry point: train, copy the final weights to <project>/weights/, then evaluate on the test sets, append results rows and save the results plot
 def main():
     parser = argparse.ArgumentParser(description="Train one CamoEdge experiment")
     parser.add_argument("--experiment", default="E1", choices=sorted(experimentModelSettings))
@@ -141,6 +149,9 @@ def main():
     arguments = parser.parse_args()
     checkpointPath = trainCamoEdge(arguments.experiment, arguments.dataset, arguments.project, arguments.seed, arguments.epochs, arguments.batch, arguments.imgsz,
                                    arguments.lr, arguments.encoder, arguments.gating, arguments.edge_weight, arguments.device, maximumCount=arguments.subset)
+    # Like Plans A to C, the final weights go to <project>/weights/camoedge-<variant>-seed<k>.pt (the name the demo and a release use); this happens
+    # before the evaluation so a failed evaluation cannot lose them, and a --subset trial is skipped so it never overwrites real final weights
+    if not arguments.subset: print(f"Final weights: {exportFinalWeights(checkpointPath, Path(arguments.project) / 'weights')}")
     notes = f"subset={arguments.subset}" if arguments.subset else ""
     if arguments.skip_evaluation:
         from camoedge.evaluate import plotCheckpoint
