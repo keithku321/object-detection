@@ -3,6 +3,7 @@
 # Predictions are resized to each image's original mask size before scoring, as the standard protocol does.
 import argparse
 import csv
+import time
 from pathlib import Path
 
 import numpy as np
@@ -43,11 +44,14 @@ def evaluatePairs(model, pairs, imageSize=defaultImageSize, device=None, groupBy
     device = device or getDefaultDevice()
     overall, groups = CamoMetrics(), {}
     loader = buildTestLoader(pairs, imageSize, getDefaultWorkerCount() if workers is None else workers, maximumCount)
-    for batch in loader:
+    # The metrics run on the CPU at full image size and take minutes, so progress is printed ten times per test set
+    progressStep, startTime = max(1, len(loader) // 10), time.time()
+    for imageIndex, batch in enumerate(loader, start=1):
         trueMask = np.asarray(Image.open(batch["maskPath"][0]).convert("L")) > 127
         probability = predictProbability(model, batch["image"].to(device), trueMask.shape)
         overall.update(probability, trueMask)
         if groupBySuperClass: groups.setdefault(superClassOf(batch["name"][0]), CamoMetrics()).update(probability, trueMask)
+        if imageIndex % progressStep == 0: print(f"  evaluated {imageIndex}/{len(loader)} images, {time.time() - startTime:.0f}s", flush=True)
     return overall.compute(), {groupName: metrics.compute() for groupName, metrics in sorted(groups.items())}
 
 
@@ -57,6 +61,7 @@ def evaluateCheckpoint(checkpointPath, datasetRoot, device=None, maximumCount=No
     model, settings = loadCheckpointModel(checkpointPath, device)
     metricsByTestSet, perCategory = {}, {}
     for testName, pairs in collectTestPairs(datasetRoot).items():
+        print(f"Evaluating on {testName}: {len(pairs)} images", flush=True)
         metrics, groups = evaluatePairs(model, pairs, settings["imageSize"], device, groupBySuperClass=testName == "COD10K", maximumCount=maximumCount)
         metricsByTestSet[testName] = metrics
         if groups: perCategory = groups
