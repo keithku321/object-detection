@@ -11,10 +11,18 @@ datasets/*
 /underwater/dataset/brackish/dataset.yaml
 # Ultralytics label caches (labels/train.cache and so on) are rebuilt on every machine and are megabytes in size
 *.cache
-runs/
+# Training runs stay local; only runs/weights/ is looked at, and inside it only the final weights excepted below are tracked
+runs/*
+!runs/weights/
 *.pt
 *.onnx
 *.zip
+# Exception (decision D8): the final weights that the training scripts copy to runs/weights/ may be committed for Plan A (Brackish, CC BY 4.0) and
+# Plan D (the team's own code, published for non-commercial research only); their terms are in runs/weights/README.md. Plan B (DAWN) and Plan C
+# (VisDrone) stay out: their data terms are non-commercial or unconfirmed, which the AGPL-3.0 of Ultralytics-trained weights cannot respect.
+# Checkpoints inside run folders (runs/<task>/<run>/weights/) and trial projects (runs/epoch1-check/ and so on) are never committed.
+!runs/weights/underwater-*.pt
+!runs/weights/camoedge-*.pt
 
 # Ultralytics settings file; it is written into the working folder when the user settings folder is not writable,
 # and it holds paths of one machine
@@ -157,11 +165,14 @@ __marimo__/
 *.vsix
 tempCodeRunnerFile.py
 
-# Visual Studio
+# Visual Studio (UpgradeLog*.htm and _UpgradeReport_Files/ are the migration report it writes when it upgrades the project file)
 .vs/
 *.suo
 *.user
 *.sln.docstates
+UpgradeLog*.htm
+UpgradeLog*.XML
+_UpgradeReport_Files/
 
 # JetBrains (PyCharm, IntelliJ, and so on)
 .idea/

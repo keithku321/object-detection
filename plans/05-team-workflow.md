@@ -7,7 +7,7 @@ Companion to [00-main-plan.md](00-main-plan.md). Four people, one proposal each,
 |---|---|---|---|
 | A | Underwater ([01](01-underwater.md)) | _TBD (the underwater proposal is written by Chan Sze Ham; confirm)_ | |
 | B | WeatherDistill ([02](02-weather-distill.md)) | _TBD_ | |
-| C | Small object ([03](03-small-object.md)) | _TBD_ | |
+| C | Small object ([03](03-small-object.md)) | Ku Sui Ki | |
 | D | CamoEdge ([04](04-camoedge.md)) | _TBD_ | |
 
 Assign plans by interest and skill. Two practical notes: Plan C needs the most GPU time, so it suits whoever has the strongest local GPU; Plan D is plain PyTorch with the least reuse of the others' code, so it suits someone comfortable working independently. The plans differ in difficulty, not in importance; stewardship (below) is spread so that the total workload comes out similar.
@@ -29,7 +29,7 @@ The easiest plan (A) carries the most shared files, and the heaviest compute pla
 2. **Shared files** (`common/`, `requirements.txt`, `datasets/manifest.json`, `demo/app.py`) change through a pull request that **one other owner** approves; the steward is the natural reviewer, and a steward's own change is reviewed by someone else. A pin change in `requirements.txt` or a model-version fallback needs **two** other owners.
 3. **Branches:** `main` holds merged phases; owners work on `owner/<task>-<topic>` branches and open a PR at each phase gate. The person who merges and tags `phase-N-done` rotates each gate (A, B, C, D, then A again).
 4. **Notebooks:** strip outputs before committing; otherwise notebook diffs become unreadable. One notebook per owner per task, named `<task>_colab.ipynb`, created by copying the template notebook.
-5. **Never commit** datasets, weights, API tokens or Drive links with edit access. `.gitignore` already excludes data and weights.
+5. **Never commit** datasets, weights, API tokens or Drive links with edit access. `.gitignore` already excludes data and weights. The one exception is the final weights of Plans A and D in `runs/weights/` (decision D8; terms in `runs/weights/README.md`).
 6. **Version pin:** everyone installs from `requirements.txt`. Nobody upgrades Ultralytics locally "to try it".
 7. **Reproducibility:** every result row carries the git commit and Ultralytics version; the report cites rows, not screenshots.
 

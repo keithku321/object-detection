@@ -1,0 +1,2 @@
+task,model,variant,seed,map50,map50_95,precision,recall,apCoco,ap50Coco,ap75Coco,apSmall,apMedium,apLarge,cocoAgreesWithUltralytics,parameters,gflops,gpu,commit,ultralytics,torch,timestamp,notes
+smallobject,yolo26n,baseline,0,0.290909,0.159367,0.409643,0.312773,0.162439,0.293994,0.153901,0.083182,0.245357,0.439362,1.0,2391922.0,5.386,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T16:09:18+00:00,split=val; head=one2one(nms=False); epochs=50; imgsz=640; maxDets=500

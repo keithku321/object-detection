@@ -1,6 +1,6 @@
 # Plan C: Small Object Detection — Multi-Scale Fusion + Attention (YOLO26)
 
-Proposal: the "Small Object" subtask in the project deck (enhanced multi-scale feature fusion, lightweight attention, preserved high-resolution features, improved AP_s). Only the deck describes it; there is no separate write-up, so this plan fills the gaps. Main plan: [00-main-plan.md](00-main-plan.md). Team workflow: [05-team-workflow.md](05-team-workflow.md). Difficulty rank: **3 of 4**. Owner: _TBD (suggested: whoever has the strongest local GPU)_.
+Proposal: the "Small Object" subtask in the project deck (enhanced multi-scale feature fusion, lightweight attention, preserved high-resolution features, improved AP_s). Only the deck describes it; there is no separate write-up, so this plan fills the gaps. Main plan: [00-main-plan.md](00-main-plan.md). Team workflow: [05-team-workflow.md](05-team-workflow.md). Difficulty rank: **3 of 4**. Owner: **Ku Sui Ki** (assigned 2026-10-22, see decision D7).
 
 ## Goal and success criteria
 Raise the small-object AP (AP_s) of a lightweight YOLO26 on a standard small-object benchmark while staying lightweight and fast.

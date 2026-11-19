@@ -1,0 +1,3 @@
+task,model,variant,seed,sAlpha,eMean,eMax,fWeighted,mae,boundaryF,images,parameters,gpu,commit,ultralytics,torch,timestamp,notes
+camoedge,pvt_v2_b2,E1@COD10K,0,0.853104,0.881612,0.922405,0.717354,0.028816,0.389656,2026.0,25063876.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T17:38:46+00:00,epochs=50; imgsz=352; checkpoint=last
+camoedge,pvt_v2_b2,E1@CAMO,0,0.853521,0.88871,0.912025,0.779996,0.055402,0.416562,250.0,25063876.0,NVIDIA GeForce RTX 5060 Ti,8b527eca,8.4.175,2.11.0+cu128,2026-10-22T17:38:46+00:00,epochs=50; imgsz=352; checkpoint=last
