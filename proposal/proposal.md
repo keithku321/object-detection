@@ -10,7 +10,7 @@
 | Supervisor | [Supervisor name, to confirm] |
 | Date | [Submission date] |
 
-> Draft notes, remove before submission: items in square brackets still need team input. Chapters 1 to 3 are about 3,000 words including tables, excluding diagrams. Every reference must be checked against the original paper before submission.
+> Draft notes, remove before submission: items in square brackets still need team input. Chapters 1 to 3 are about 3,000 words including tables, excluding diagrams. References were checked online on 2026-11-19 against publisher, CVF, PMLR, IJCAI, arXiv or DBLP records; the EfficientDet page range differs between CVF (used here) and IEEE Xplore (10778–10787).
 
 ---
 
@@ -258,7 +258,7 @@ Liu, C., Li, H., Wang, S., Zhu, M., Wang, D., Fan, X., & Wang, Z. (2021). A data
 
 Liu, W., Lu, H., Fu, H., & Cao, Z. (2023). Learning to upsample by learning to sample. In *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)* (pp. 6027–6037).
 
-Pedersen, M., Haurum, J. B., Gade, R., & Moeslund, T. B. (2019). Detection of marine animals in a new underwater dataset with varying visibility. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)* (pp. 18–26).
+Pedersen, M., Haurum, J. B., Gade, R., Moeslund, T. B., & Madsen, N. (2019). Detection of marine animals in a new underwater dataset with varying visibility. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)* (pp. 18–26).
 
 Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). You only look once: Unified, real-time object detection. In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)* (pp. 779–788).
 
